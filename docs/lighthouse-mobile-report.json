@@ -1,0 +1,31 @@
+{
+  "userAgent": "Lighthouse placeholder - run manually: npx lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-mobile-report.json --preset=perf --form-factor=mobile",
+  "fetchTime": "2026-02-13T00:00:00.000Z",
+  "categories": {
+    "performance": {
+      "id": "performance",
+      "title": "Performance",
+      "score": null,
+      "auditRefs": []
+    },
+    "accessibility": {
+      "id": "accessibility",
+      "title": "Accessibility",
+      "score": null,
+      "auditRefs": []
+    },
+    "best-practices": {
+      "id": "best-practices",
+      "title": "Best Practices",
+      "score": null,
+      "auditRefs": []
+    },
+    "seo": {
+      "id": "seo",
+      "title": "SEO",
+      "score": null,
+      "auditRefs": []
+    }
+  },
+  "note": "Run: npm run build && npm run start, then in another terminal: npx lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-mobile-report.json --preset=perf --form-factor=mobile"
+}

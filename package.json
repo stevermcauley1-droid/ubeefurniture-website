@@ -1,0 +1,28 @@
+{
+  "name": "ubeefurniture-website",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-mobile-report.json --preset=perf --form-factor=mobile --chrome-flags=\"--headless\"",
+    "start": "next start",
+    "lint": "next lint",
+    "shopify:smoke": "node scripts/shopify-smoke-test.mjs",
+    "shopify:test": "node scripts/shopify/storefront-test.mjs"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.2.0"
+  }
+}
