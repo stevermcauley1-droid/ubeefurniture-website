@@ -102,7 +102,7 @@ export default async function LandlordHubPage() {
         </div>
       </section>
 
-      <section>
+      <section id="quote">
         <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Request a quote</h2>
         <p style={{ fontSize: '0.9375rem', color: '#555', marginBottom: '1rem' }}>
           Tell us about your property and we’ll get back with a tailored package or quote.

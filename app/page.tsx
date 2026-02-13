@@ -3,9 +3,6 @@ import Image from 'next/image';
 import { getProducts, getCollections, ShopifyTokenError } from '@/lib/shopify';
 import { ShopifyTokenErrorPanel } from '@/app/components/ShopifyTokenErrorPanel';
 
-/** Phase 0 locked value prop — non-negotiable */
-const VALUE_PROP = 'Furnished fast. Priced right. Built for rentals.';
-
 /**
  * Homepage — conversion-focused: hero (landlord + retail), category entry,
  * landlord packages highlight, trust strip, featured collections.
@@ -43,39 +40,67 @@ export default async function HomePage() {
 
   return (
     <main>
-      {/* Hero — landlord + retail split (min-height for CLS) */}
-      <section style={{ padding: '3rem 1rem', textAlign: 'center', background: 'linear-gradient(180deg, #f8f8f8 0%, #fff 100%)', minHeight: 220 }}>
-        <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', marginBottom: '0.5rem' }}>
-          Ubee Furniture
-        </h1>
-        <p style={{ fontSize: '1.125rem', color: '#555', maxWidth: 600, margin: '0 auto 1.5rem', fontWeight: 500 }}>
-          {VALUE_PROP}
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+      {/* Hero — furnished room imagery with landlord-focused CTAs */}
+      <section style={{ position: 'relative', minHeight: 400, overflow: 'hidden' }}>
+        <Image
+          src="/images/hero.png"
+          alt="Complete property furniture packages for landlords — furnished living room"
+          width={1920}
+          height={1080}
+          priority
+          style={{
+            width: '100%',
+            height: 'auto',
+            minHeight: 400,
+            objectFit: 'cover',
+            objectPosition: 'center',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '2rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem',
+            width: '100%',
+            maxWidth: 400,
+            padding: '0 1rem',
+          }}
+        >
           <Link
-            href="/collections"
+            href="/landlord#quote"
             style={{
-              padding: '0.75rem 1.5rem',
-              background: '#000',
-              color: '#fff',
+              display: 'block',
+              width: '100%',
+              padding: '0.875rem 1.5rem',
+              background: '#F5C518',
+              color: '#1a1a1a',
               borderRadius: 6,
-              fontWeight: 600,
+              fontWeight: 700,
+              textAlign: 'center',
             }}
           >
-            Shop furniture
+            Get a Fast Furnishing Quote
           </Link>
           <Link
             href="/landlord"
             style={{
-              padding: '0.75rem 1.5rem',
+              display: 'block',
+              width: '100%',
+              padding: '0.875rem 1.5rem',
               background: '#fff',
-              color: '#000',
-              border: '2px solid #000',
+              color: '#1a1a1a',
+              border: '2px solid #1a1a1a',
               borderRadius: 6,
               fontWeight: 600,
+              textAlign: 'center',
             }}
           >
-            Landlord packages
+            View Landlord Packages
           </Link>
         </div>
       </section>
