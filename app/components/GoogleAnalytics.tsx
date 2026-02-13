@@ -1,5 +1,6 @@
 'use client';
 
+import Script from 'next/script';
 import { isGAEnabled, getGAMeasurementId } from '@/lib/analytics';
 
 export function GoogleAnalytics() {
@@ -7,20 +8,18 @@ export function GoogleAnalytics() {
   const id = getGAMeasurementId();
   return (
     <>
-      <script
-        async
+      <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${id}`}
+        strategy="lazyOnload"
       />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${id}');
-          `,
-        }}
-      />
+      <Script id="ga-config" strategy="lazyOnload">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${id}');
+        `}
+      </Script>
     </>
   );
 }

@@ -148,8 +148,8 @@ export default async function HomePage() {
             padding: 0,
           }}
         >
-          {products.map((e) => (
-            <li key={e.node.id}>
+          {products.map((e, i) => (
+            <li key={e.node.id} style={{ minHeight: 0 }}>
               <Link href={`/products/${e.node.handle}`}>
                 {e.node.featuredImage && (
                   <Image
@@ -158,6 +158,7 @@ export default async function HomePage() {
                     width={e.node.featuredImage.width ?? 400}
                     height={e.node.featuredImage.height ?? 400}
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
+                    priority={i < 4}
                     style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8 }}
                   />
                 )}

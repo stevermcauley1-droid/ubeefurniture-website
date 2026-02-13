@@ -27,6 +27,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
+      </head>
       <body style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
         <MegaMenu />
         <GoogleAnalytics />

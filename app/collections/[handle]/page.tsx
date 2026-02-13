@@ -64,12 +64,13 @@ export default async function CollectionPage({ params, searchParams }: PageProps
           width={collection.image.width ?? 400}
           height={collection.image.height ?? 400}
           sizes="(max-width: 768px) 100vw, 400px"
+          priority
           style={{ maxWidth: 400, marginTop: '0.5rem', borderRadius: 8 }}
         />
       )}
       <CollectionSort handle={handle} currentSort={option.value} options={SORT_OPTIONS} />
       <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', listStyle: 'none', marginTop: '1rem' }}>
-        {products.map((p) => (
+        {products.map((p, i) => (
           <li key={p.id}>
             <Link href={`/products/${p.handle}`}>
               {p.featuredImage && (
@@ -79,6 +80,7 @@ export default async function CollectionPage({ params, searchParams }: PageProps
                   width={p.featuredImage.width ?? 400}
                   height={p.featuredImage.height ?? 400}
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
+                  priority={i < 4}
                   style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8 }}
                 />
               )}
