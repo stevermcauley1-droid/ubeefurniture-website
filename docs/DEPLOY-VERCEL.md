@@ -17,7 +17,7 @@ git push -u origin main
    - `SHOPIFY_STORE_DOMAIN` = ubee-furniture.myshopify.com
    - `SHOPIFY_STOREFRONT_ACCESS_TOKEN` = (your token)
    - `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN` = ubee-furniture.myshopify.com
-   - `NEXT_PUBLIC_SITE_URL` = https://your-vercel-url.vercel.app (or custom domain)
+   - `NEXT_PUBLIC_SITE_URL` = https://www.ubeefurniture.co.uk (or Vercel URL until custom domain is connected)
 4. Deploy
 
 ## 3. Verify

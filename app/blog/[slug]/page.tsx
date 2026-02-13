@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, BLOG_POSTS } from '@/lib/blog-content';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
 
 interface PageProps {
   params: Promise<{ slug: string }>;

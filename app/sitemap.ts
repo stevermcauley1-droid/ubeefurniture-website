@@ -1,6 +1,6 @@
 import { getProducts, getCollections } from '@/lib/shopify';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
 
 export const revalidate = 3600; // 1 hour
 

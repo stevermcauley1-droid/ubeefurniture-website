@@ -6,7 +6,7 @@ import { ProductForm } from '@/app/components/ProductForm';
 import { ProductStructuredData } from '@/app/components/StructuredData';
 import { TrackViewItem } from '@/app/components/TrackViewItem';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
 
 interface PageProps {
   params: Promise<{ handle: string }>;

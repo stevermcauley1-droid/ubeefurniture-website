@@ -6,7 +6,7 @@ import type { CollectionSortKey } from '@/lib/shopify';
 import { CollectionSort } from './CollectionSort';
 import { BreadcrumbStructuredData } from '@/app/components/StructuredData';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
 
 interface PageProps {
   params: Promise<{ handle: string }>;
