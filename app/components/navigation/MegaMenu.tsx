@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { SearchBar } from './SearchBar';
 
 const NAV_ITEMS = [
   {
@@ -83,6 +84,10 @@ export function MegaMenu() {
           Ubee Furniture
         </Link>
 
+        <div className="mega-menu-desktop" style={{ marginLeft: 'auto', marginRight: '0.5rem' }}>
+          <SearchBar />
+        </div>
+
         {/* Desktop: horizontal nav with hover dropdowns */}
         <ul
           className="mega-menu-desktop"
@@ -154,6 +159,10 @@ export function MegaMenu() {
             </li>
           ))}
         </ul>
+
+        <div className="mega-menu-mobile" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #eee' }}>
+          <SearchBar />
+        </div>
 
         {/* Mobile: accordion */}
         <ul

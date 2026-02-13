@@ -362,6 +362,43 @@ const PRODUCTS_FIRST_PAGE = `
   }
 `;
 
+const PRODUCTS_SEARCH = `
+  query ProductsSearch($first: Int!, $query: String!) {
+    products(first: $first, query: $query) {
+      edges {
+        node {
+          id
+          handle
+          title
+          description
+          featuredImage {
+            url
+            altText
+            width
+            height
+          }
+          variants(first: 1) {
+            edges {
+              node {
+                id
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+          availableForSale
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
 const COLLECTIONS_FIRST_PAGE = `
   query CollectionsFirst($first: Int!) {
     collections(first: $first) {
@@ -417,6 +454,20 @@ export async function getCollections(first = 10): Promise<CollectionsQueryResult
     return { collections: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } };
   }
   return storefrontFetch<CollectionsQueryResult>(COLLECTIONS_FIRST_PAGE, { first });
+}
+
+export async function searchProducts(query: string, first = 24): Promise<ProductsQueryResult> {
+  if (storefrontToken()?.startsWith('shpss_')) {
+    throw new ShopifyTokenError(TOKEN_GUIDANCE.wrongType, 'WRONG_TYPE');
+  }
+  if (!getStorefrontConfig()) {
+    return { products: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } };
+  }
+  const trimmed = String(query || '').trim();
+  if (!trimmed) {
+    return { products: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } };
+  }
+  return storefrontFetch<ProductsQueryResult>(PRODUCTS_SEARCH, { first, query: trimmed });
 }
 
 export type CollectionSortKey = 'PRICE' | 'CREATED' | 'BEST_SELLING' | 'TITLE' | 'MANUAL' | 'COLLECTION_DEFAULT';

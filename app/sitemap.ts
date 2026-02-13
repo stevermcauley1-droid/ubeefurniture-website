@@ -11,6 +11,7 @@ export default async function sitemap() {
     { url: `${BASE}/cart`, lastModified: new Date() },
     { url: `${BASE}/landlord`, lastModified: new Date() },
     { url: `${BASE}/blog`, lastModified: new Date() },
+    { url: `${BASE}/search`, lastModified: new Date() },
   ];
 
   let collections: { handle: string }[] = [];
