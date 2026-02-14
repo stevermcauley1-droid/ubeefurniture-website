@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
+import dynamic from 'next/dynamic';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { GoogleAnalytics } from './components/GoogleAnalytics';
-import { MegaMenu } from './components/navigation/MegaMenu';
 import { Footer } from './components/Footer';
+
+const MegaMenu = dynamic(() => import('./components/navigation/MegaMenu').then((m) => ({ default: m.MegaMenu })), {
+  ssr: true,
+});
 
 const inter = Inter({
   subsets: ['latin'],

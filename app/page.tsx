@@ -3,6 +3,9 @@ import Image from 'next/image';
 import { getProducts, getCollections, ShopifyTokenError } from '@/lib/shopify';
 import { ShopifyTokenErrorPanel } from '@/app/components/ShopifyTokenErrorPanel';
 
+/** Revalidate homepage every 60s (ISR). */
+export const revalidate = 60;
+
 /**
  * Homepage — conversion-focused: hero (landlord + retail), category entry,
  * landlord packages highlight, trust strip, featured collections.
@@ -48,6 +51,8 @@ export default async function HomePage() {
           width={1920}
           height={1080}
           priority
+          sizes="100vw"
+          quality={75}
           style={{
             width: '100%',
             height: 'auto',
@@ -183,7 +188,7 @@ export default async function HomePage() {
                     width={e.node.featuredImage.width ?? 400}
                     height={e.node.featuredImage.height ?? 400}
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
-                    priority={i < 4}
+                    priority={i < 2}
                     style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8 }}
                   />
                 )}
