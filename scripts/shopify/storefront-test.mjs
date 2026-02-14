@@ -85,6 +85,29 @@ async function main() {
   }
 
   console.log(`OK: ${shopName}`);
+
+  // Smoke-test collection fetch (first collection handle)
+  const collRes = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Storefront-Access-Token': TOKEN,
+    },
+    body: JSON.stringify({
+      query: `query { collections(first: 1) { edges { node { handle title } } } }`,
+    }),
+  });
+  if (!collRes.ok) {
+    console.error('Collection smoke test failed:', collRes.status);
+    process.exit(1);
+  }
+  const collData = await collRes.json();
+  const firstColl = collData?.data?.collections?.edges?.[0]?.node;
+  if (firstColl) {
+    console.log(`Collection: "${firstColl.title}" (handle: ${firstColl.handle})`);
+  } else {
+    console.log('No collections returned (store may have none).');
+  }
 }
 
 main().catch((err) => {

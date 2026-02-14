@@ -13,6 +13,14 @@ interface PageProps {
   searchParams: Promise<{ sort?: string }>;
 }
 
+const SORT_OPTIONS: { value: string; label: string; sortKey: CollectionSortKey; reverse: boolean }[] = [
+  { value: 'default', label: 'Default', sortKey: 'COLLECTION_DEFAULT', reverse: false },
+  { value: 'price-asc', label: 'Price: low to high', sortKey: 'PRICE', reverse: false },
+  { value: 'price-desc', label: 'Price: high to low', sortKey: 'PRICE', reverse: true },
+  { value: 'newest', label: 'Newest', sortKey: 'CREATED', reverse: true },
+  { value: 'title', label: 'A–Z', sortKey: 'TITLE', reverse: false },
+];
+
 export async function generateMetadata({ params }: PageProps) {
   const { handle } = await params;
   const { collection } = await getCollectionByHandle(handle, 1);
@@ -24,17 +32,11 @@ export async function generateMetadata({ params }: PageProps) {
   };
 }
 
-const SORT_OPTIONS: { value: string; label: string; sortKey: CollectionSortKey; reverse: boolean }[] = [
-  { value: 'default', label: 'Default', sortKey: 'COLLECTION_DEFAULT', reverse: false },
-  { value: 'price-asc', label: 'Price: low to high', sortKey: 'PRICE', reverse: false },
-  { value: 'price-desc', label: 'Price: high to low', sortKey: 'PRICE', reverse: true },
-  { value: 'newest', label: 'Newest', sortKey: 'CREATED', reverse: true },
-  { value: 'title', label: 'A–Z', sortKey: 'TITLE', reverse: false },
-];
-
 export default async function CollectionPage({ params, searchParams }: PageProps) {
   const { handle } = await params;
   const { sort: sortParam } = await searchParams;
+  if (!handle || typeof handle !== 'string') notFound();
+
   const option = SORT_OPTIONS.find((o) => o.value === sortParam) ?? SORT_OPTIONS[0];
   const { collection } = await getCollectionByHandle(
     handle,
@@ -57,6 +59,11 @@ export default async function CollectionPage({ params, searchParams }: PageProps
       <BreadcrumbStructuredData items={breadcrumbs} />
       <Link href="/" style={{ display: 'inline-block', marginBottom: '1rem' }}>← Home</Link>
       <h1>{collection.title}</h1>
+      {collection.description && (
+        <p style={{ marginTop: '0.5rem', color: '#4b5563', maxWidth: '60ch' }}>
+          {collection.description}
+        </p>
+      )}
       {collection.image && (
         <Image
           src={collection.image.url}
@@ -69,7 +76,16 @@ export default async function CollectionPage({ params, searchParams }: PageProps
         />
       )}
       <CollectionSort handle={handle} currentSort={option.value} options={SORT_OPTIONS} />
-      <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', listStyle: 'none', marginTop: '1rem' }}>
+      <ul
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: '1rem',
+          listStyle: 'none',
+          marginTop: '1rem',
+          padding: 0,
+        }}
+      >
         {products.map((p, i) => (
           <li key={p.id}>
             <Link href={`/products/${p.handle}`}>
@@ -86,7 +102,11 @@ export default async function CollectionPage({ params, searchParams }: PageProps
               )}
               <strong>{p.title}</strong>
               {p.variants?.edges?.[0]?.node?.price && (
-                <span> — {p.variants.edges[0].node.price.currencyCode} {p.variants.edges[0].node.price.amount}</span>
+                <span>
+                  {' '}
+                  — {p.variants.edges[0].node.price.currencyCode}{' '}
+                  {p.variants.edges[0].node.price.amount}
+                </span>
               )}
             </Link>
           </li>
