@@ -43,24 +43,26 @@ export default async function HomePage() {
 
   return (
     <main>
-      {/* Hero — furnished room imagery with landlord-focused CTAs */}
+      {/* Hero — furnished room imagery with landlord-focused CTAs (LCP-optimized) */}
       <section style={{ position: 'relative', minHeight: 400, overflow: 'hidden' }}>
-        <Image
-          src="/images/hero.png"
-          alt="Complete property furniture packages for landlords — furnished living room"
-          width={1920}
-          height={1080}
-          priority
-          sizes="100vw"
-          quality={75}
+        <div
           style={{
+            position: 'relative',
             width: '100%',
-            height: 'auto',
+            aspectRatio: '16 / 9',
             minHeight: 400,
-            objectFit: 'cover',
-            objectPosition: 'center',
           }}
-        />
+        >
+          <Image
+            src="/images/hero.png"
+            alt="Complete property furniture packages for landlords — furnished living room"
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 100vw"
+            quality={70}
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
+          />
+        </div>
         <div
           style={{
             position: 'absolute',
