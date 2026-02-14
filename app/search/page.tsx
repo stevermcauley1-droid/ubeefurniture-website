@@ -2,7 +2,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { searchProducts } from '@/lib/shopify';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string }>;
@@ -16,7 +18,7 @@ export async function generateMetadata({ searchParams }: SearchPageProps) {
     description: query
       ? `Search results for "${query}" at Ubee Furniture.`
       : 'Search furniture and landlord packages.',
-    alternates: { canonical: `${BASE}/search${query ? `?q=${encodeURIComponent(query)}` : ''}` },
+    alternates: { canonical: `${baseUrl}/search${query ? `?q=${encodeURIComponent(query)}` : ''}` },
   };
 }
 

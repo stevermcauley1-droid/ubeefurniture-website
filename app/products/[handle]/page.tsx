@@ -6,7 +6,9 @@ import { ProductForm } from '@/app/components/ProductForm';
 import { ProductStructuredData } from '@/app/components/StructuredData';
 import { TrackViewItem } from '@/app/components/TrackViewItem';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 interface PageProps {
   params: Promise<{ handle: string }>;
@@ -19,7 +21,7 @@ export async function generateMetadata({ params }: PageProps) {
   return {
     title: product.title,
     description: product.description?.slice(0, 160) ?? product.title,
-    alternates: { canonical: `${BASE}/products/${handle}` },
+    alternates: { canonical: `${baseUrl}/products/${handle}` },
   };
 }
 

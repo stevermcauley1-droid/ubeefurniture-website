@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, BLOG_POSTS } from '@/lib/blog-content';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -19,7 +21,7 @@ export async function generateMetadata({ params }: PageProps) {
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: `${BASE}/blog/${slug}` },
+    alternates: { canonical: `${baseUrl}/blog/${slug}` },
   };
 }
 

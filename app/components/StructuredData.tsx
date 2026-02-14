@@ -1,6 +1,8 @@
 import type { StorefrontProduct } from '@/lib/types';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 interface ProductStructuredDataProps {
   product: StorefrontProduct;
@@ -27,15 +29,15 @@ export function ProductStructuredData({ product }: ProductStructuredDataProps) {
           : 'https://schema.org/OutOfStock',
       },
     }),
-    url: `${BASE}/products/${product.handle}`,
+    url: `${baseUrl}/products/${product.handle}`,
   };
 
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
-      { '@type': 'ListItem', position: 2, name: product.title, item: `${BASE}/products/${product.handle}` },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+      { '@type': 'ListItem', position: 2, name: product.title, item: `${baseUrl}/products/${product.handle}` },
     ],
   };
 
@@ -92,7 +94,7 @@ export function BreadcrumbStructuredData({ items }: BreadcrumbStructuredDataProp
       '@type': 'ListItem',
       position: i + 1,
       name: item.name,
-      item: item.url.startsWith('http') ? item.url : `${BASE}${item.url}`,
+      item: item.url.startsWith('http') ? item.url : `${baseUrl}${item.url}`,
     })),
   };
   return (

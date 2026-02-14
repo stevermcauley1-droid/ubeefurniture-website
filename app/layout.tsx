@@ -11,14 +11,16 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(BASE),
+  metadataBase: new URL(baseUrl),
   title: { default: 'Ubee Furniture | Quality Furniture for Home & Rental', template: '%s | Ubee Furniture' },
   description:
     'Furniture for every space. Retail and landlord packages for furnished rentals.',
-  openGraph: { type: 'website', url: BASE },
+  openGraph: { type: 'website', url: baseUrl },
 };
 
 export default function RootLayout({

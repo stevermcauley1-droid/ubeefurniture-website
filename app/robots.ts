@@ -1,4 +1,6 @@
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 export default function robots() {
   return {
@@ -7,6 +9,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/api/', '/cart'],
     },
-    sitemap: `${BASE}/sitemap.xml`,
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

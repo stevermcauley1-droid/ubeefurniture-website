@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { getCollections } from '@/lib/shopify';
 import { LandlordLeadForm } from './LandlordLeadForm';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 export async function generateMetadata() {
   return {
     title: 'Landlord packages',
     description: 'Furnish a property fast with furniture packages for landlords. Request a quote or shop packages.',
-    alternates: { canonical: `${BASE}/landlord` },
+    alternates: { canonical: `${baseUrl}/landlord` },
   };
 }
 

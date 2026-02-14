@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { BLOG_POSTS } from '@/lib/blog-content';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 export const metadata = {
   title: 'Blog',
   description: 'Tips and guides for landlords and furnished rentals.',
-  alternates: { canonical: `${BASE}/blog` },
+  alternates: { canonical: `${baseUrl}/blog` },
 };
 
 export default function BlogIndexPage() {

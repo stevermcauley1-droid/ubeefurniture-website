@@ -1,17 +1,19 @@
 import { getProducts, getCollections } from '@/lib/shopify';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 export const revalidate = 3600; // 1 hour
 
 export default async function sitemap() {
   const staticRoutes: { url: string; lastModified: Date }[] = [
-    { url: BASE, lastModified: new Date() },
-    { url: `${BASE}/collections`, lastModified: new Date() },
-    { url: `${BASE}/cart`, lastModified: new Date() },
-    { url: `${BASE}/landlord`, lastModified: new Date() },
-    { url: `${BASE}/blog`, lastModified: new Date() },
-    { url: `${BASE}/search`, lastModified: new Date() },
+    { url: baseUrl, lastModified: new Date() },
+    { url: `${baseUrl}/collections`, lastModified: new Date() },
+    { url: `${baseUrl}/cart`, lastModified: new Date() },
+    { url: `${baseUrl}/landlord`, lastModified: new Date() },
+    { url: `${baseUrl}/blog`, lastModified: new Date() },
+    { url: `${baseUrl}/search`, lastModified: new Date() },
   ];
 
   let collections: { handle: string }[] = [];
@@ -25,11 +27,11 @@ export default async function sitemap() {
   }
 
   const collectionUrls = collections.map((c) => ({
-    url: `${BASE}/collections/${c.handle}`,
+    url: `${baseUrl}/collections/${c.handle}`,
     lastModified: new Date(),
   }));
   const productUrls = products.map((p) => ({
-    url: `${BASE}/products/${p.handle}`,
+    url: `${baseUrl}/products/${p.handle}`,
     lastModified: new Date(),
   }));
 
@@ -46,7 +48,7 @@ export default async function sitemap() {
     'furnished-vs-unfurnished',
   ];
   const blogUrls = blogSlugs.map((slug) => ({
-    url: `${BASE}/blog/${slug}`,
+    url: `${baseUrl}/blog/${slug}`,
     lastModified: new Date(),
   }));
 

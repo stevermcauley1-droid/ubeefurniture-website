@@ -6,7 +6,9 @@ import type { CollectionSortKey } from '@/lib/shopify';
 import { CollectionSort } from './CollectionSort';
 import { BreadcrumbStructuredData } from '@/app/components/StructuredData';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.ubeefurniture.co.uk';
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  'http://localhost:3000';
 
 interface PageProps {
   params: Promise<{ handle: string }>;
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: PageProps) {
   return {
     title: collection.title,
     description: `Shop ${collection.title} at Ubee Furniture.`,
-    alternates: { canonical: `${BASE}/collections/${handle}` },
+    alternates: { canonical: `${baseUrl}/collections/${handle}` },
   };
 }
 
@@ -49,9 +51,9 @@ export default async function CollectionPage({ params, searchParams }: PageProps
   const products = collection.products.edges.map((e) => e.node);
 
   const breadcrumbs = [
-    { name: 'Home', url: BASE },
-    { name: 'Collections', url: `${BASE}/collections` },
-    { name: collection.title, url: `${BASE}/collections/${handle}` },
+    { name: 'Home', url: baseUrl },
+    { name: 'Collections', url: `${baseUrl}/collections` },
+    { name: collection.title, url: `${baseUrl}/collections/${handle}` },
   ];
 
   return (
