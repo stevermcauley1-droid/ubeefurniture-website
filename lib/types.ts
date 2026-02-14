@@ -37,6 +37,7 @@ export interface StorefrontCollection {
   id: string;
   handle: string;
   title: string;
+  description?: string | null;
   image: StorefrontImage | null;
   products: {
     edges: { node: StorefrontProduct }[];
