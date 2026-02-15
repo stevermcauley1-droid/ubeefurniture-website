@@ -43,7 +43,7 @@ export default async function HomePage() {
 
   return (
     <main>
-      {/* Hero — furnished room imagery with landlord-focused CTAs (LCP-optimized) */}
+      {/* Hero — clean imagery, no baked-in UI; CTAs overlay below (LCP-optimized WebP) */}
       <section style={{ position: 'relative', minHeight: 400, overflow: 'hidden' }}>
         <div
           style={{
@@ -54,12 +54,12 @@ export default async function HomePage() {
           }}
         >
           <Image
-            src="/images/hero.png"
-            alt="Complete property furniture packages for landlords — furnished living room"
-            fill
+            src="/hero-clean.webp"
+            alt="Complete Property Furniture Packages"
             priority
-            sizes="(max-width: 768px) 100vw, 100vw"
-            quality={70}
+            fill
+            sizes="100vw"
+            quality={80}
             style={{ objectFit: 'cover', objectPosition: 'center' }}
           />
         </div>
