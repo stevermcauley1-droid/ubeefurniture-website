@@ -1,0 +1,308 @@
+// uBee Furniture — Client Intelligence Database
+// Prisma + Supabase (Postgres)
+// Sales pipeline, client scoring, AI-ready recommendations
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ClientType {
+  LANDLORD
+  LETTING_AGENT
+  SOCIAL_HOUSING
+  RETAIL
+}
+
+enum VolumeTier {
+  MICRO       // 1–5 units
+  SMALL       // 6–20 units
+  MEDIUM      // 21–50 units
+  LARGE       // 51–200 units
+  ENTERPRISE  // 200+ units
+}
+
+enum BudgetBand {
+  BUDGET
+  STANDARD
+  PREMIUM
+}
+
+enum UrgencyLevel {
+  IMMEDIATE
+  URGENT
+  NORMAL
+  PLANNED
+}
+
+enum ComplianceRequirement {
+  NONE
+  CRIB5
+  FIRE_SAFETY
+  FULL_COMPLIANCE
+}
+
+enum RelationshipStage {
+  PROSPECT
+  LEAD
+  QUALIFIED
+  ACTIVE
+  CHURNED
+  LAPSED
+}
+
+enum DealStage {
+  DISCOVERY
+  QUOTE_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum DealSource {
+  WEBSITE
+  REFERRAL
+  COLD_OUTREACH
+  TRADE_SHOW
+  PARTNERSHIP
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PropertyType {
+  FLAT
+  HOUSE
+  HMO
+  HOSTEL
+  OTHER
+}
+
+enum PropertyStatus {
+  VACANT
+  TENANTED
+  REFURBISHMENT
+  NEW_BUILD
+}
+
+enum InteractionType {
+  CALL
+  WHATSAPP
+  EMAIL
+  MEETING
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Client {
+  id                    String    @id @default(cuid())
+  clientType            ClientType
+  volumeTier            VolumeTier
+  budgetBand            BudgetBand
+  urgencyLevel          UrgencyLevel
+  complianceRequirement ComplianceRequirement
+  relationshipStage     RelationshipStage
+  region                String?
+  companyName           String?
+  displayName           String?
+
+  // Pipeline
+  estimatedAnnualValue  Int?
+  probability           Int?     // 0–100
+  nextAction            String?
+  nextActionDate        DateTime?
+  assignedTo            String?
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  contacts     ClientContact[]
+  properties   Property[]
+  deals        Deal[]
+  quotes       Quote[]
+  orders       Order[]
+  interactions Interaction[]
+  metrics      ClientMetrics?
+  recommendations Recommendation[]
+
+  @@index([clientType])
+  @@index([region])
+}
+
+model ClientContact {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  phone     String?
+  role      String?
+  isPrimary Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+model Property {
+  id             String         @id @default(cuid())
+  clientId       String
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  propertyType   PropertyType
+  propertyStatus PropertyStatus
+  postcodeArea   String?
+  addressLine1   String?
+  addressLine2   String?
+  unitCount      Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals  Deal[]
+  quotes Quote[]
+
+  @@index([clientId])
+  @@index([postcodeArea])
+}
+
+model Deal {
+  id           String     @id @default(cuid())
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  propertyId   String?
+  property     Property?  @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  stage        DealStage
+  source       DealSource
+  value        Decimal?   @db.Decimal(10, 2)
+  nextActionAt DateTime?
+  notes        String?    @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotes Quote[]
+  orders Order[]
+
+  @@index([clientId])
+  @@index([stage])
+  @@index([nextActionAt])
+}
+
+model Quote {
+  id         String   @id @default(cuid())
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  dealId     String?
+  deal       Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  total      Decimal  @db.Decimal(10, 2)
+  validUntil DateTime?
+  status     String   @default("draft") // draft, sent, accepted, expired
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([dealId])
+}
+
+model Order {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dealId       String?
+  deal         Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  shopifyId    String?  // Link to Shopify order
+  total        Decimal  @db.Decimal(10, 2)
+  paymentTerms String?  // e.g. "Net 30", "Immediate"
+  paidAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([createdAt])
+}
+
+model Package {
+  id          String   @id @default(cuid())
+  shopifyId   String?  // Shopify product ID
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  isCrib5     Boolean  @default(false)
+  isExpress   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isCrib5])
+  @@index([isExpress])
+}
+
+model Interaction {
+  id        String         @id @default(cuid())
+  clientId  String
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      InteractionType
+  summary   String?        @db.Text
+  direction String?        // inbound, outbound
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([createdAt])
+}
+
+model ClientMetrics {
+  id            String   @id @default(cuid())
+  clientId      String   @unique
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  opportunityScore Int?
+  riskScore     Int?
+  aov           Decimal? @db.Decimal(10, 2)
+  totalOrders   Int      @default(0)
+  totalValue    Decimal  @default(0) @db.Decimal(12, 2)
+  lastOrderAt   DateTime?
+  latePaymentsCount Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([opportunityScore])
+  @@index([riskScore])
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  ruleType  String   // e.g. "CRIB5_ELIGIBLE", "EXPRESS_OFFER", "STANDARD_PACKAGE"
+  text      String   @db.Text
+  priority  Int      @default(0)
+  metadata  Json?    // e.g. { packageId, badge }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([ruleType])
+}

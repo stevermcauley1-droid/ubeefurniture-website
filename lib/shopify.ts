@@ -173,6 +173,7 @@ const ADMIN_COLLECTION_BY_HANDLE = `
       id
       handle
       title
+      descriptionHtml
       image { url altText width height }
       products(first: $first) {
         edges {
@@ -478,6 +479,7 @@ const COLLECTION_BY_HANDLE = `
       id
       handle
       title
+      description
       image {
         url
         altText
@@ -540,13 +542,14 @@ export async function getCollectionByHandle(
   reverse?: boolean
 ): Promise<CollectionByHandleResult> {
   if (useAdminFallback()) {
-    const data = await adminFetch<{ collection: { id: string; handle: string; title: string; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
+    const data = await adminFetch<{ collection: { id: string; handle: string; title: string; descriptionHtml?: string | null; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
     if (!data.collection) return { collection: null };
     return {
       collection: {
         id: data.collection.id,
         handle: data.collection.handle,
         title: data.collection.title,
+        description: data.collection.descriptionHtml ?? null,
         image: data.collection.image ? { url: data.collection.image.url, altText: data.collection.image.altText ?? null, width: data.collection.image.width || 0, height: data.collection.image.height || 0 } : null,
         products: {
           edges: data.collection.products.edges.map((e) => ({ node: mapAdminProduct(e.node as Parameters<typeof mapAdminProduct>[0]) })),

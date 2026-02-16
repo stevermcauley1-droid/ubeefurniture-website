@@ -2,25 +2,18 @@
 
 The homepage hero uses a **clean** image (no baked-in buttons or UI).
 
-## Required file
+## Current file
 
-- **Path:** `public/hero-clean.webp`
-- **URL:** `/hero-clean.webp`
+- **Path:** `public/hero-clean.png`
+- **URL:** `/hero-clean.png`
+- **In use:** Clean living-room hero (no baked-in buttons); Next.js serves WebP/AVIF when supported.
 
-## Specs (quality-preserving)
+## Specs (for future replacements)
 
 | Property    | Value |
 |------------|--------|
-| Format     | WebP |
+| Format     | PNG or WebP |
 | Max width  | 1920px |
-| Quality    | 80 (export/source); Next.js will also use quality 80 |
+| Quality    | 80 (export/source); Next.js uses quality 80 in code |
 | Target size| 250–450 KB (do not overly compress) |
 | Content    | Clean furnished-room/property imagery; **no baked-in buttons or text** (CTAs are overlaid in HTML). |
-
-## How to add
-
-1. Export or save your hero image as WebP (max width 1920px, quality ~80, 250–450 KB).
-2. Save it as `public/hero-clean.webp` in this repo.
-3. Redeploy or refresh; the homepage will use it automatically.
-
-If the file is missing, the hero image request will 404 until the file is added.

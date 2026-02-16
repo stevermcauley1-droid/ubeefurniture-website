@@ -4,18 +4,33 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { SearchBar } from './SearchBar';
 
-const NAV_ITEMS = [
-  {
-    label: 'Room',
-    href: '/collections',
-    ariaLabel: 'Shop by room',
-    children: [
-      { label: 'Sofas', href: '/collections/sofas' },
-      { label: 'Beds', href: '/collections/beds' },
-      { label: 'Dining', href: '/collections/dining' },
-      { label: 'All collections', href: '/collections' },
-    ],
-  },
+interface MegaMenuProps {
+  collections?: Array<{ handle: string; title: string }>;
+}
+
+export function MegaMenu({ collections = [] }: MegaMenuProps) {
+  const [mobileOpen, setMobileOpen] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  // Build Room nav items from real collections (max 6, then "All collections")
+  const roomChildren = collections.slice(0, 6).map((c) => ({
+    label: c.title,
+    href: `/collections/${c.handle}`,
+  }));
+  if (collections.length > 0) {
+    roomChildren.push({ label: 'All collections', href: '/collections' });
+  } else {
+    // Fallback if no collections: just show "All collections"
+    roomChildren.push({ label: 'All collections', href: '/collections' });
+  }
+
+  const NAV_ITEMS = [
+    {
+      label: 'Room',
+      href: '/collections',
+      ariaLabel: 'Shop by room',
+      children: roomChildren,
+    },
   {
     label: 'Package',
     href: '/landlord',
@@ -42,11 +57,7 @@ const NAV_ITEMS = [
       { label: 'Shop sale', href: '/collections' },
     ],
   },
-];
-
-export function MegaMenu() {
-  const [mobileOpen, setMobileOpen] = useState<string | null>(null);
-  const [hovered, setHovered] = useState<string | null>(null);
+  ];
 
   return (
     <nav

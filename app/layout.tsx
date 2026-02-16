@@ -4,10 +4,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { GoogleAnalytics } from './components/GoogleAnalytics';
 import { Footer } from './components/Footer';
-
-const MegaMenu = dynamic(() => import('./components/navigation/MegaMenu').then((m) => ({ default: m.MegaMenu })), {
-  ssr: true,
-});
+import { MegaMenuWrapper } from './components/navigation/MegaMenuWrapper';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -38,7 +35,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
       </head>
       <body style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
-        <MegaMenu />
+        <MegaMenuWrapper />
         <GoogleAnalytics />
         {children}
         <Footer />
