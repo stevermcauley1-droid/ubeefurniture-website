@@ -1,123 +1,120 @@
 #!/usr/bin/env node
 /**
- * Shopify token smoke test.
+ * Shopify Storefront token smoke test.
  * Run: npm run shopify:smoke
- * Never logs secrets.
+ * Never logs secrets; prints domain, masked token, and runs a minimal Storefront API query.
  */
 
-import { config } from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = join(__dirname, '..');
-config({ path: join(root, '.env') });
-config({ path: join(root, '.env.local') });
+const root = process.cwd();
+
+function loadEnv(path) {
+  if (!existsSync(path)) return;
+  const content = readFileSync(path, 'utf8');
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (m) {
+      const value = m[2].replace(/^["']|["']$/g, '').trim();
+      if (!process.env[m[1]]) process.env[m[1]] = value;
+    }
+  }
+}
+
+loadEnv(join(root, '.env'));
+loadEnv(join(root, '.env.local'));
 
 const DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-const STOREFRONT_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-const ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
-const ADMIN_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-01';
+const TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
+const STOREFRONT_API_VERSION = '2024-01';
 
-function mask(t) {
+function maskToken(t) {
   if (!t || typeof t !== 'string') return '(empty)';
-  if (t.startsWith('shpss_')) return 'shpss_**** (app secret - WRONG)';
-  if (t.startsWith('shpat_')) return 'shpat_****';
-  return t.slice(0, 8) + '****';
-}
-
-async function testStorefront() {
-  const url = `https://${DOMAIN}/api/${ADMIN_API_VERSION}/graphql.json`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN,
-    },
-    body: JSON.stringify({ query: '{ shop { name } }' }),
-  });
-  return res;
-}
-
-async function testAdmin() {
-  const url = `https://${DOMAIN}/admin/api/${ADMIN_API_VERSION}/graphql.json`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': ADMIN_TOKEN,
-    },
-    body: JSON.stringify({ query: '{ shop { name } }' }),
-  });
-  return res;
+  if (t.startsWith('shpss_')) return 'shpss_**** (app secret — not Storefront)';
+  if (t.startsWith('shpat_')) return 'shpat_**** (Admin token — use Headless token)';
+  if (t.length <= 8) return '****';
+  return t.slice(0, 4) + '****' + t.slice(-4);
 }
 
 async function main() {
-  console.log('\n--- Shopify token smoke test ---\n');
+  console.log('--- Shopify Storefront smoke test ---\n');
   console.log('Domain:', DOMAIN || '(missing)');
-  console.log('Storefront token:', mask(STOREFRONT_TOKEN));
-  console.log('Admin token:', mask(ADMIN_TOKEN));
+  console.log('Storefront token:', TOKEN ? `present (${maskToken(TOKEN)})` : '(missing)');
   console.log('');
 
   if (!DOMAIN) {
-    console.log('❌ Missing SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN');
-    console.log('\nNext steps:');
-    console.log('  1. Add to .env: SHOPIFY_STORE_DOMAIN=your-store.myshopify.com');
-    console.log('  2. Add to .env: SHOPIFY_STOREFRONT_ACCESS_TOKEN=<your token>');
-    console.log('  3. Token must come from: Custom App > Storefront API integration > Storefront access token');
-    console.log('\nDo NOT paste shpss_ (app secret) anywhere. That is a different token.');
+    console.error('Missing SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN.');
+    console.error('Add to .env.local: SHOPIFY_STORE_DOMAIN=ubee-furniture.myshopify.com');
     process.exit(1);
   }
 
-  if (STOREFRONT_TOKEN?.startsWith('shpss_')) {
-    console.log('❌ Wrong token type: You pasted an app secret (shpss_...).');
-    console.log('   That is NOT a Storefront token. Find Storefront access token under:');
-    console.log('   Shopify Admin → Settings → Apps → Develop apps → [Your app] → Storefront API integration');
+  if (!TOKEN) {
+    console.error('Missing Storefront token. Set SHOPIFY_STOREFRONT_ACCESS_TOKEN or SHOPIFY_STOREFRONT_TOKEN in .env.local.');
+    console.error('Create token in Shopify Admin → Headless → Storefront API → Manage → Access tokens');
     process.exit(1);
   }
 
-  if (STOREFRONT_TOKEN) {
-    const res = await testStorefront();
-    if (res.ok) {
-      const json = await res.json();
-      const shopName = json?.data?.shop?.name || 'Shop';
-      console.log('✅ Storefront token OK —', shopName);
-    } else if (res.status === 401 || res.status === 403) {
-      console.log('❌ Storefront token invalid or wrong type.');
-      console.log('   You likely pasted an Admin token or app secret.');
-      console.log('   Get the correct token from: Custom App > Storefront API integration > Storefront access token');
-      process.exit(1);
-    } else {
-      console.log('❌ Storefront API error:', res.status, res.statusText);
-      process.exit(1);
-    }
-  } else if (ADMIN_TOKEN) {
-    const res = await testAdmin();
-    if (res.ok) {
-      const json = await res.json();
-      const shopName = json?.data?.shop?.name || 'Shop';
-      console.log('⚠️  Storefront token missing. Admin token OK —', shopName);
-      console.log('   Catalog may work (Admin fallback) but cart/checkout require Storefront token.');
-      console.log('\nTo get Storefront token:');
-      console.log('  Shopify Admin → Settings → Apps → Develop apps → [Your app] → Storefront API integration');
-    } else if (res.status === 401 || res.status === 403) {
-      console.log('❌ Admin token invalid.');
-      process.exit(1);
-    } else {
-      console.log('❌ Admin API error:', res.status, res.statusText);
-      process.exit(1);
-    }
-  } else {
-    console.log('❌ No tokens found (SHOPIFY_STOREFRONT_ACCESS_TOKEN or SHOPIFY_ADMIN_ACCESS_TOKEN)');
-    console.log('\nNext steps:');
-    console.log('  1. Paste Storefront API token into SHOPIFY_STOREFRONT_ACCESS_TOKEN in .env');
-    console.log('  2. Token must come from: Custom App > Storefront API integration > Storefront access token');
-    console.log('  3. Restart dev server after editing .env');
-    console.log('\nDo NOT paste shpss_ (app secret). That is not a Storefront token.');
+  if (TOKEN.startsWith('shpss_')) {
+    console.error('Wrong token type: app secret (shpss_) is not a Storefront token.');
+    console.error('Create token in Shopify Admin → Headless → Storefront API → Manage → Access tokens');
     process.exit(1);
   }
 
-  console.log('');
+  const url = `https://${DOMAIN}/api/${STOREFRONT_API_VERSION}/graphql.json`;
+
+  const shopRes = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Storefront-Access-Token': TOKEN,
+    },
+    body: JSON.stringify({ query: '{ shop { name } }' }),
+  });
+
+  if (shopRes.status === 401 || shopRes.status === 403) {
+    console.error('Storefront API returned', shopRes.status);
+    console.error('Check token created in Headless → Storefront API → Access tokens and correct scopes.');
+    process.exit(1);
+  }
+
+  if (!shopRes.ok) {
+    const text = await shopRes.text();
+    console.error('Storefront API error:', shopRes.status, text.slice(0, 200));
+    process.exit(1);
+  }
+
+  const shopData = await shopRes.json();
+  const shopName = shopData?.data?.shop?.name;
+
+  if (!shopName) {
+    const err = shopData?.errors?.[0]?.message || JSON.stringify(shopData).slice(0, 150);
+    console.error('Storefront API query failed:', err);
+    process.exit(1);
+  }
+
+  console.log('Storefront API query: OK (shop name:', shopName + ')');
+
+  const productsRes = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Storefront-Access-Token': TOKEN,
+    },
+    body: JSON.stringify({
+      query: 'query { products(first: 1) { edges { node { id } } } }',
+    }),
+  });
+
+  if (productsRes.ok) {
+    const productsData = await productsRes.json();
+    const count = productsData?.data?.products?.edges?.length ?? 0;
+    console.log('Storefront API query: OK (at least', count, 'product(s) reachable)');
+  }
+
+  console.log('\n✅ Smoke test passed.');
   process.exit(0);
 }
 

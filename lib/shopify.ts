@@ -1,6 +1,7 @@
 /**
  * Shopify Storefront API client (with optional Admin fallback for catalog).
- * Uses env: NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_ACCESS_TOKEN
+ * Uses env: SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+ * SHOPIFY_STOREFRONT_ACCESS_TOKEN (or SHOPIFY_STOREFRONT_TOKEN as fallback).
  */
 
 import { ShopifyTokenError, TOKEN_GUIDANCE } from './shopify-errors';
@@ -15,7 +16,9 @@ const API_VERSION = '2024-01';
 
 const domain = () =>
   process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-const storefrontToken = () => process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+/** Prefer SHOPIFY_STOREFRONT_ACCESS_TOKEN; fallback to SHOPIFY_STOREFRONT_TOKEN for compatibility. */
+const storefrontToken = () =>
+  process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
 const adminToken = () => process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
 const dataMode = () => process.env.SHOPIFY_DATA_MODE || 'storefront';
 
@@ -84,7 +87,7 @@ export async function storefrontFetch<T>(query: string, variables?: Record<strin
   clearTimeout(timeoutId);
   if (res.status === 401 || res.status === 403) {
     throw new ShopifyTokenError(
-      'Storefront token invalid or wrong type. You likely pasted an Admin token or app secret. Get the correct token from Custom App > Storefront API integration.',
+      'Storefront token invalid or wrong type. Check token from Headless → Storefront API → Access tokens and correct scopes.',
       'INVALID'
     );
   }

@@ -27,10 +27,10 @@ loadEnv(join(root, '.env'));
 loadEnv(join(root, '.env.local'));
 
 const domain = process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-const token = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+const token = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
 
 if (!domain || !token) {
-  console.error('Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_STOREFRONT_ACCESS_TOKEN');
+  console.error('Missing SHOPIFY_STORE_DOMAIN or SHOPIFY_STOREFRONT_ACCESS_TOKEN (or SHOPIFY_STOREFRONT_TOKEN)');
   console.error('Set in .env.local or as environment variables');
   process.exit(1);
 }

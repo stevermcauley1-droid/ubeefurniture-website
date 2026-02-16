@@ -28,7 +28,7 @@ loadEnv(join(root, '.env'));
 loadEnv(join(root, '.env.local'));
 
 const SHOP = process.env.SHOPIFY_STORE_DOMAIN || process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-const TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+const TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
 
 const STOREFRONT_API_VERSION = '2024-01';
 
@@ -46,7 +46,10 @@ async function main() {
   if (!SHOP) fail('Missing SHOPIFY_STORE_DOMAIN or NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN');
 
   if (!TOKEN) {
-    fail('Missing SHOPIFY_STOREFRONT_ACCESS_TOKEN. Add to .env.local from Shopify Admin → Settings → Apps → Develop apps → [Your app] → Storefront API integration.');
+    console.error('Missing SHOPIFY_STOREFRONT_ACCESS_TOKEN (or SHOPIFY_STOREFRONT_TOKEN).');
+    console.error('Create token in Shopify Admin → Headless → Storefront API → Manage → Access tokens');
+    console.error('Then add to .env.local: SHOPIFY_STOREFRONT_ACCESS_TOKEN=<token>');
+    process.exit(1);
   }
 
   const url = `https://${SHOP}/api/${STOREFRONT_API_VERSION}/graphql.json`;
@@ -64,10 +67,7 @@ async function main() {
     console.error('Storefront API returned', res.status);
     console.error('Token (masked):', maskToken(TOKEN));
     console.error('');
-    console.error('Actionable hints:');
-    console.error('  - Token missing or wrong: add SHOPIFY_STOREFRONT_ACCESS_TOKEN to .env.local');
-    console.error('  - Get token from: Shopify Admin → Settings → Apps → Develop apps → [Custom app] → Storefront API integration');
-    console.error('  - Restart dev server after editing .env.local');
+    console.error('Check token created in Headless → Storefront API → Access tokens and correct scopes.');
     process.exit(1);
   }
 
