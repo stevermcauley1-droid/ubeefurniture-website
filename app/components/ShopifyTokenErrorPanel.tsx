@@ -1,5 +1,3 @@
-'use client';
-
 interface ShopifyTokenErrorPanelProps {
   status: 'domain_ok' | 'token_missing' | 'token_invalid' | 'wrong_type';
   message?: string;
