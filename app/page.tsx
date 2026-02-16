@@ -56,11 +56,11 @@ export default async function HomePage() {
           <Image
             src="/hero-clean.webp"
             alt="Complete Property Furniture Packages"
-            priority
             fill
-            sizes="100vw"
+            priority
             quality={80}
-            style={{ objectFit: 'cover', objectPosition: 'center' }}
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
           />
         </div>
         <div
