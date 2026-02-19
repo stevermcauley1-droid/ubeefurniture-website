@@ -50,8 +50,13 @@ export default async function AgentEnquiriesPage({
       <EnquiriesInbox
         token={token}
         initialEnquiries={enquiries.map((item) => ({
-          ...item,
+          id: item.id,
           createdAt: item.createdAt.toISOString(),
+          customerName: item.customerName,
+          customerEmail: item.customerEmail,
+          propertyAddress: item.propertyAddress,
+          message: item.message,
+          status: item.status as 'NEW' | 'IN_PROGRESS' | 'WON' | 'LOST',
         }))}
       />
     </main>

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:clean": "rimraf .next && rimraf node_modules/.cache && next dev",
+    "postinstall": "prisma generate",
     "build": "next build",
     "lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-mobile-report.json --preset=perf --form-factor=mobile --chrome-flags=\"--headless\"",
     "start": "next start",
@@ -12,7 +13,9 @@
     "shopify:smoke": "node scripts/shopify-smoke-test.mjs",
     "shopify:test": "node scripts/shopify/storefront-test.mjs",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:local": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "ftg:import:details": "tsx scripts/ftg/import-ftg-details.ts",
