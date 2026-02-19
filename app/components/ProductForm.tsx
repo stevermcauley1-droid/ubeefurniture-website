@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AddToCartButton } from './AddToCartButton';
+import { ProductVariants } from './ProductVariants';
 import type { StorefrontProduct } from '@/lib/types';
 
 interface ProductFormProps {
@@ -17,31 +18,22 @@ export function ProductForm({ product, priceAmount = 0, priceCurrency = 'GBP' }:
   if (variants.length === 0) return null;
 
   const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? variants[0];
+  const currentPrice = selectedVariant.price ? parseFloat(selectedVariant.price.amount) : priceAmount;
+  const currentCurrency = selectedVariant.price?.currencyCode ?? priceCurrency;
 
   return (
-    <div>
-      {variants.length > 1 && (
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontWeight: 600, marginRight: '0.5rem' }}>Option:</label>
-          <select
-            value={selectedVariantId}
-            onChange={(e) => setSelectedVariantId(e.target.value)}
-            style={{ padding: '0.25rem 0.5rem' }}
-          >
-            {variants.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.title} {!v.availableForSale ? '(sold out)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+    <div className="space-y-4">
+      <ProductVariants
+        variants={variants}
+        selectedVariantId={selectedVariantId}
+        onVariantChange={setSelectedVariantId}
+      />
       <AddToCartButton
         variantId={selectedVariantId}
         productId={product.id}
         productName={product.title}
-        price={priceAmount}
-        currency={priceCurrency}
+        price={currentPrice}
+        currency={currentCurrency}
         label={selectedVariant.availableForSale ? 'Add to cart' : 'Sold out'}
         redirectToCart={true}
         disabled={!selectedVariant.availableForSale}

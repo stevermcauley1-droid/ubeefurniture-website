@@ -22,15 +22,7 @@ export function SearchBar() {
       />
       <button
         type="submit"
-        style={{
-          padding: '0.5rem 1rem',
-          background: '#000',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 4,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
+        className="px-4 py-2 bg-[var(--ubee-yellow)] hover:bg-[var(--ubee-yellow-hover)] text-[var(--ubee-black)] border-none rounded font-semibold cursor-pointer transition-colors"
       >
         Search
       </button>

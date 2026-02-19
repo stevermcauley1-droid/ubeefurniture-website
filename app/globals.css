@@ -1,3 +1,14 @@
+@import "tailwindcss";
+
+/* uBee brand colours */
+:root {
+  --ubee-yellow: #facc15;
+  --ubee-yellow-hover: #eab308;
+  --ubee-black: #1a1a1a;
+  --ubee-gray: #4b5563;
+  --ubee-gray-light: #9ca3af;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

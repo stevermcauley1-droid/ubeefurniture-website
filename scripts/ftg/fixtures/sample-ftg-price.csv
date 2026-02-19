@@ -1,0 +1,5 @@
+SKU,Cost Price,Trade Price,RRP,VAT %,Stock,Availability,Lead Time (days),Discontinued
+FTG-001,120.50,145.00,249.99,20,10,In Stock,5,
+FTG-002,89.00,110.00,189.00,20,0,Out of Stock,14,
+FTG-003,200.00,260.00,399.00,20,3,Low Stock,7,Y
+1.01291E+12,50.00,65.00,99.00,20,1,In Stock,3,

@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getProductByHandle } from '@/lib/shopify';
 import { ProductForm } from '@/app/components/ProductForm';
+import { ProductGallery } from '@/app/components/ProductGallery';
+import { ProductFAQ } from '@/app/components/ProductFAQ';
 import { ProductStructuredData } from '@/app/components/StructuredData';
 import { TrackViewItem } from '@/app/components/TrackViewItem';
 
@@ -16,18 +17,36 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps) {
   const { handle } = await params;
-  const { product } = await getProductByHandle(handle);
-  if (!product) return { title: 'Product' };
-  return {
-    title: product.title,
-    description: product.description?.slice(0, 160) ?? product.title,
-    alternates: { canonical: `${baseUrl}/products/${handle}` },
-  };
+  try {
+    const { product } = await getProductByHandle(handle);
+    if (!product) return { title: 'Product' };
+    return {
+      title: product.title,
+      description: product.description?.slice(0, 160) ?? product.title,
+      alternates: { canonical: `${baseUrl}/products/${handle}` },
+    };
+  } catch {
+    return { title: 'Product' };
+  }
 }
 
 export default async function ProductPage({ params }: PageProps) {
   const { handle } = await params;
-  const { product } = await getProductByHandle(handle);
+  let product: Awaited<ReturnType<typeof getProductByHandle>>['product'];
+  try {
+    const result = await getProductByHandle(handle);
+    product = result.product;
+  } catch {
+    return (
+      <main style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1rem' }}>
+        <Link href="/collections" style={{ display: 'inline-block', marginBottom: '1rem' }}>← Collections</Link>
+        <h1>Product</h1>
+        <p style={{ color: '#666' }}>
+          We could not load this product. Check that Storefront API is configured in .env.local (see docs/env.local.phase2.template).
+        </p>
+      </main>
+    );
+  }
   if (!product) notFound();
 
   const [firstVariant] = product.variants.edges;
@@ -40,92 +59,117 @@ export default async function ProductPage({ params }: PageProps) {
     product.tags?.some((t) => t.toLowerCase().includes('landlord') || t.toLowerCase().includes('rental')) ?? false;
   const priceAmount = price ? parseFloat(price.amount) : 0;
   const priceCurrency = price?.currencyCode ?? 'GBP';
+  
+  // Extract category from product tags or use default
+  const productCategory = product.tags?.find((t) => 
+    ['sofa', 'bed', 'dining', 'package', 'furniture'].some(cat => t.toLowerCase().includes(cat))
+  ) || 'Furniture';
 
   return (
-    <main style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1rem' }}>
-      <TrackViewItem productId={product.id} productName={product.title} price={priceAmount} currency={priceCurrency} />
+    <main className="max-w-6xl mx-auto px-4 py-8">
+      <TrackViewItem 
+        productId={product.id} 
+        productName={product.title} 
+        price={priceAmount} 
+        currency={priceCurrency}
+        category={productCategory}
+      />
       <ProductStructuredData product={product} />
-      <Link href="/" style={{ display: 'inline-block', marginBottom: '1rem' }}>← Home</Link>
+      <Link href="/collections" className="inline-block mb-4 text-[var(--ubee-gray)] hover:text-[var(--ubee-black)] transition-colors">
+        ← Back to Collections
+      </Link>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
         {/* Gallery */}
         <div>
-          {displayImages.length > 0 ? (
-            <div>
-              <Image
-                src={displayImages[0].url}
-                alt={displayImages[0].altText ?? product.title}
-                width={displayImages[0].width ?? 800}
-                height={displayImages[0].height ?? 800}
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-                style={{ width: '100%', borderRadius: 8 }}
-              />
-              {displayImages.length > 1 && (
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                  {displayImages.slice(1, 6).map((img, i) => (
-                    <Image
-                      key={i}
-                      src={img.url}
-                      alt={img.altText ?? `${product.title} ${i + 2}`}
-                      width={80}
-                      height={80}
-                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ aspectRatio: '1', background: '#f0f0f0', borderRadius: 8 }} />
-          )}
+          <ProductGallery images={displayImages} productTitle={product.title} />
         </div>
 
-        <div>
-          <h1>{product.title}</h1>
+        {/* Product info */}
+        <div className="space-y-4">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--ubee-black)]">{product.title}</h1>
+          
           {price && (
-            <p style={{ fontSize: '1.25rem', marginTop: '0.5rem' }}>
+            <p className="text-xl font-semibold text-[var(--ubee-black)]">
               {price.currencyCode} {price.amount}
             </p>
           )}
-          <p style={{ marginTop: '1rem', whiteSpace: 'pre-wrap' }}>{product.description}</p>
 
-          <div style={{ marginTop: '1.5rem' }}>
+          {product.description && (
+            <div className="prose prose-sm max-w-none text-[var(--ubee-gray)] whitespace-pre-wrap">
+              {product.description}
+            </div>
+          )}
+
+          {/* Variants & Add to cart */}
+          <div className="pt-4 border-t border-gray-200">
             <ProductForm product={product} priceAmount={priceAmount} priceCurrency={priceCurrency} />
           </div>
 
-          {/* Delivery / lead time */}
-          <p style={{ marginTop: '1.25rem', fontSize: '0.875rem', color: '#555' }}>
-            <strong>Delivery:</strong> Standard delivery to most UK addresses. Lead times vary by item; we will confirm after order.
-          </p>
+          {/* Delivery info */}
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-sm font-semibold text-[var(--ubee-black)] mb-2">Delivery & Lead Time</h3>
+            <p className="text-sm text-[var(--ubee-gray)]">
+              Standard delivery to most UK addresses. Lead times vary by product; we confirm after order. Assembly available on request.
+            </p>
+          </div>
 
-          {/* Why this suits rentals — only if landlord-tagged */}
+          {/* Landlord block — enhanced */}
           {isLandlordTagged && (
-            <div style={{ marginTop: '1.25rem', padding: '1rem', background: '#f8f8f8', borderRadius: 8 }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Why this suits rentals</h3>
-              <p style={{ fontSize: '0.875rem', margin: 0 }}>
-                Durable and easy to maintain — ideal for furnished lets. Popular with landlords for quality and value.
-              </p>
+            <div className="pt-4 border-t border-gray-200">
+              <div className="p-4 bg-[var(--ubee-yellow)] bg-opacity-10 border-l-4 border-[var(--ubee-yellow)] rounded">
+                <h3 className="text-base font-semibold text-[var(--ubee-black)] mb-2">Perfect for Rental Properties</h3>
+                <p className="text-sm text-[var(--ubee-gray)] mb-3">
+                  Durable and easy to maintain — ideal for furnished lets. Popular with landlords for quality and value.
+                </p>
+                <Link
+                  href="/landlords/catalogue"
+                  className="inline-block text-sm font-semibold text-[var(--ubee-black)] hover:underline"
+                >
+                  Download Landlord Catalogue →
+                </Link>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Specs placeholder — can be wired to metafields later */}
-      <section style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #eee' }}>
-        <h2 style={{ fontSize: '1.125rem' }}>Details</h2>
-        <p style={{ fontSize: '0.875rem', color: '#555' }}>
-          Dimensions and full specs can be added via Shopify product metafields and displayed here.
+      {/* Specs section — ready for metafields */}
+      <section className="mt-12 pt-8 border-t border-gray-200">
+        <h2 className="text-xl font-semibold text-[var(--ubee-black)] mb-4">Product Details</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="text-[var(--ubee-gray)] mb-2">
+              <strong className="text-[var(--ubee-black)]">Dimensions:</strong> Available on request
+            </p>
+            <p className="text-[var(--ubee-gray)] mb-2">
+              <strong className="text-[var(--ubee-black)]">Materials:</strong> See product description
+            </p>
+            <p className="text-[var(--ubee-gray)]">
+              <strong className="text-[var(--ubee-black)]">Care instructions:</strong> Included with delivery
+            </p>
+          </div>
+          <div>
+            <p className="text-[var(--ubee-gray)] mb-2">
+              <strong className="text-[var(--ubee-black)]">Warranty:</strong> Standard manufacturer warranty applies
+            </p>
+            <p className="text-[var(--ubee-gray)] mb-2">
+              <strong className="text-[var(--ubee-black)]">Assembly:</strong> Available on request
+            </p>
+            <p className="text-[var(--ubee-gray)]">
+              <strong className="text-[var(--ubee-black)]">Returns:</strong> 30-day returns policy applies
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-[var(--ubee-gray)] mt-4 italic">
+          Full specifications can be added via Shopify product metafields and will display here automatically.
         </p>
       </section>
 
-      {/* FAQ placeholder */}
-      <section style={{ marginTop: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.125rem' }}>FAQ</h2>
-        <ul style={{ listStyle: 'none', padding: 0, fontSize: '0.875rem' }}>
-          <li style={{ marginBottom: '0.5rem' }}><strong>Delivery time?</strong> We confirm after order.</li>
-          <li style={{ marginBottom: '0.5rem' }}><strong>Returns?</strong> See our refund policy.</li>
-        </ul>
+      {/* FAQ section */}
+      <section className="mt-8 pt-8 border-t border-gray-200">
+        <h2 className="text-xl font-semibold text-[var(--ubee-black)] mb-4">Frequently Asked Questions</h2>
+        <ProductFAQ productTitle={product.title} />
       </section>
     </main>
   );

@@ -59,7 +59,7 @@ function getStorefrontUrl(): string {
   return `https://${config.domain}/api/${API_VERSION}/graphql.json`;
 }
 
-const FETCH_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 10000; // Reduced from 15s to 10s for faster failure
 
 export async function storefrontFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const config = getStorefrontConfig();
@@ -95,6 +95,19 @@ export async function storefrontFetch<T>(query: string, variables?: Record<strin
     throw new Error(`Storefront API error: ${res.status} ${res.statusText}`);
   }
   const json = await res.json();
+  
+  // Debug logging for collections queries
+  if (query.includes('collections') || query.includes('Collections')) {
+    console.log('[storefrontFetch] Collections query response:', {
+      url: getStorefrontUrl(),
+      status: res.status,
+      hasErrors: !!json.errors?.length,
+      errors: json.errors,
+      dataKeys: json.data ? Object.keys(json.data) : null,
+      collectionsCount: json.data?.collections?.edges?.length ?? 0,
+    });
+  }
+  
   if (json.errors?.length) {
     throw new Error(json.errors.map((e: { message: string }) => e.message).join('; '));
   }
@@ -104,8 +117,17 @@ export async function storefrontFetch<T>(query: string, variables?: Record<strin
 // --- Admin API fallback (catalog only, no cart/checkout) ---
 async function adminFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   const d = domain();
-  const t = adminToken();
-  if (!d || !t) throw new Error('Admin fallback requires SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN');
+  // Try to get admin token from Client Credentials Grant if available
+  let t = adminToken();
+  if (!t) {
+    try {
+      const { getAdminAccessToken } = await import('./shopify-auth');
+      t = await getAdminAccessToken();
+    } catch (e) {
+      // If shopify-auth not available or fails, fall back to env var
+    }
+  }
+  if (!d || !t) throw new Error('Admin fallback requires SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN (or Client Credentials)');
   const url = `https://${d}/admin/api/${API_VERSION}/graphql.json`;
   const res = await fetch(url, {
     method: 'POST',
@@ -163,6 +185,16 @@ const ADMIN_COLLECTIONS = `
           handle
           title
           image { url altText width height }
+          resourcePublicationsV2(first: 10) {
+            edges {
+              node {
+                publication {
+                  id
+                  name
+                }
+              }
+            }
+          }
         }
       }
       pageInfo { hasNextPage endCursor }
@@ -280,6 +312,20 @@ function mapAdminProduct(adminNode: {
     },
     availableForSale: adminNode.status === 'ACTIVE',
   };
+}
+
+async function hasAdminAccess(): Promise<boolean> {
+  // Check for direct admin token
+  if (adminToken()) return true;
+  
+  // Check for Client Credentials Grant (2026 method)
+  try {
+    const { getAdminAccessToken } = await import('./shopify-auth');
+    await getAdminAccessToken(); // This will throw if credentials are missing
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function useAdminFallback(): boolean {
@@ -431,16 +477,95 @@ const COLLECTIONS_FIRST_PAGE = `
 `;
 
 export async function getCollections(first = 10): Promise<CollectionsQueryResult> {
+  console.log('[getCollections] Starting fetch:', {
+    first,
+    hasStorefrontToken: !!storefrontToken(),
+    tokenPrefix: storefrontToken()?.substring(0, 6),
+    useAdminFallback: useAdminFallback(),
+    hasStorefrontConfig: !!getStorefrontConfig(),
+    domain: domain(),
+  });
+  
   if (storefrontToken()?.startsWith('shpss_')) {
     throw new ShopifyTokenError(TOKEN_GUIDANCE.wrongType, 'WRONG_TYPE');
   }
-  if (useAdminFallback()) {
-    const data = await adminFetch<{ collections: { edges: { node: { id: string; handle: string; title: string; image?: { url: string; altText?: string; width?: number; height?: number } | null } }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } }>(ADMIN_COLLECTIONS, { first });
+  
+  // Try Storefront API first, but fall back to Admin API if collections aren't visible yet
+  if (getStorefrontConfig()) {
+    try {
+      console.log('[getCollections] Using Storefront API');
+      const result = await storefrontFetch<CollectionsQueryResult>(COLLECTIONS_FIRST_PAGE, { first });
+      const collectionsCount = result.collections?.edges?.length ?? 0;
+      console.log('[getCollections] Storefront API returned:', {
+        collectionsCount,
+        collections: result.collections?.edges?.map((e) => ({ id: e.node.id, handle: e.node.handle, title: e.node.title })) ?? [],
+      });
+      
+      // If Storefront API only returns frontpage, try Admin API fallback
+      const nonFrontpage = result.collections?.edges?.filter((e) => e.node.handle !== 'frontpage') || [];
+      if (collectionsCount > 0 && nonFrontpage.length === 0) {
+        const hasAdmin = await hasAdminAccess();
+        if (hasAdmin) {
+          console.log('[getCollections] Storefront API only returned frontpage, trying Admin API fallback');
+          throw new Error('Fallback to Admin API');
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      // If Storefront fails or only returns frontpage, try Admin API
+      const hasAdmin = await hasAdminAccess();
+      if (hasAdmin) {
+        console.log('[getCollections] Falling back to Admin API');
+      } else {
+        throw e;
+      }
+    }
+  }
+  
+  // Use Admin API fallback for collections if we have admin access
+  const hasAdmin = await hasAdminAccess();
+  if (useAdminFallback() || hasAdmin || adminToken()) {
+    console.log('[getCollections] Using Admin API fallback');
+    const data = await adminFetch<{ collections: { edges: { node: { id: string; handle: string; title: string; image?: { url: string; altText?: string; width?: number; height?: number } | null; resourcePublicationsV2?: { edges?: Array<{ node: { publication: { name: string } } }> } } }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } }>(ADMIN_COLLECTIONS, { first });
+    
+    // Filter to only collections published to Online Store (or any publication)
+    const publishedCollections = data.collections.edges.filter((e) => {
+      const pubs = e.node.resourcePublicationsV2?.edges || [];
+      const publicationNames = pubs.map((p) => p.node.publication.name);
+      const isPublished = pubs.length > 0;
+      
+      // Debug: Log publication status for each collection
+      if (!isPublished) {
+        console.log(`[getCollections] Collection "${e.node.title}" (${e.node.handle}) is NOT published`);
+      } else {
+        console.log(`[getCollections] Collection "${e.node.title}" (${e.node.handle}) published to:`, publicationNames.join(', '));
+      }
+      
+      return isPublished; // Only include published collections
+    });
+    
+    console.log('[getCollections] Admin API returned:', {
+      totalCollections: data.collections?.edges?.length ?? 0,
+      publishedCollections: publishedCollections.length,
+      collections: publishedCollections.map((e) => {
+        const pubs = e.node.resourcePublicationsV2?.edges || [];
+        return {
+          id: e.node.id,
+          handle: e.node.handle,
+          title: e.node.title,
+          publications: pubs.map((p) => p.node.publication.name),
+        };
+      }) ?? [],
+    });
+    
     return {
       collections: {
-        edges: data.collections.edges.map((e) => ({
+        edges: publishedCollections.map((e) => ({
           node: {
-            ...e.node,
+            id: e.node.id,
+            handle: e.node.handle,
+            title: e.node.title,
             image: e.node.image ? { url: e.node.image.url, altText: e.node.image.altText ?? null, width: e.node.image.width || 0, height: e.node.image.height || 0 } : null,
           },
         })),
@@ -448,7 +573,9 @@ export async function getCollections(first = 10): Promise<CollectionsQueryResult
       },
     };
   }
+  
   if (!getStorefrontConfig()) {
+    console.log('[getCollections] No Storefront config, returning empty');
     if (domain() && !storefrontToken()) {
       throw new ShopifyTokenError(
         `Missing SHOPIFY_STOREFRONT_ACCESS_TOKEN. ${TOKEN_GUIDANCE.missing}`,
@@ -457,7 +584,9 @@ export async function getCollections(first = 10): Promise<CollectionsQueryResult
     }
     return { collections: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } };
   }
-  return storefrontFetch<CollectionsQueryResult>(COLLECTIONS_FIRST_PAGE, { first });
+  
+  // Should not reach here, but return empty as fallback
+  return { collections: { edges: [], pageInfo: { hasNextPage: false, endCursor: null } } };
 }
 
 export async function searchProducts(query: string, first = 24): Promise<ProductsQueryResult> {

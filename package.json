@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rimraf .next && rimraf node_modules/.cache && next dev",
     "build": "next build",
     "lighthouse": "lighthouse http://localhost:3000 --output=json --output-path=./docs/lighthouse-mobile-report.json --preset=perf --form-factor=mobile --chrome-flags=\"--headless\"",
     "start": "next start",
@@ -13,13 +14,22 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "ftg:import:details": "tsx scripts/ftg/import-ftg-details.ts",
+    "ftg:import:price": "tsx scripts/ftg/import-ftg-price.ts",
+    "ftg:sync:all": "tsx scripts/ftg/import-ftg-details.ts && tsx scripts/ftg/import-ftg-price.ts",
+    "ftg:sync:shopify": "tsx scripts/ftg/sync-ftg-to-shopify.ts",
+    "collections:create": "tsx scripts/create-collections.ts",
+    "collections:verify": "tsx scripts/verify-collections.ts",
+    "shopify:test-auth": "tsx scripts/test-shopify-auth.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "@supabase/supabase-js": "^2.95.3",
+    "csv-parse": "^6.1.0",
     "next": "^14.2.0",
+    "nodemailer": "^8.0.1",
     "pg": "^8.18.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -28,14 +38,20 @@
     "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^20.0.0",
+    "@types/nodemailer": "^7.0.10",
     "@types/pg": "^8.16.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.24",
     "dotenv": "^16.0.0",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.2.0",
+    "postcss": "^8.5.6",
     "prisma": "^7.4.0",
+    "rimraf": "^5.0.0",
+    "tailwindcss": "^4.2.0",
     "tsx": "^4.19.0",
     "typescript": "^5.0.0"
   }

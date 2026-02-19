@@ -22,9 +22,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# env (keep .env.example)
+# env (keep .env.example; never commit .env.local — tokens)
 .env
 .env*.local
+.env.local
+
+# Shopify token cache (contains sensitive access tokens)
+.shopify-token-cache.json
 
 # vercel
 .vercel

@@ -102,6 +102,11 @@ enum InteractionType {
   MEETING
 }
 
+enum MarkupType {
+  PERCENT
+  FIXED
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MODELS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -305,4 +310,159 @@ model Recommendation {
 
   @@index([clientId])
   @@index([ruleType])
+}
+
+model Agent {
+  id                  String            @id @default(uuid())
+  name                String
+  agencyName          String            @map("agency_name")
+  email               String            @unique
+  phone               String?
+  brandingLogoUrl     String?           @map("branding_logo_url")
+  brandingPrimaryColor String?          @map("branding_primary_color")
+  markupType          MarkupType        @default(PERCENT) @map("markup_type")
+  markupValue         Decimal           @default(0) @db.Decimal(10, 2) @map("markup_value")
+  createdAt           DateTime          @default(now()) @map("created_at")
+
+  catalogues          AgentCatalogue[]
+  accessTokens        AgentAccessToken[]
+  enquiries           Enquiry[]
+
+  @@map("agents")
+}
+
+model AgentCatalogue {
+  id         String   @id @default(uuid())
+  agentId    String   @map("agent_id")
+  slug       String   @unique
+  title      String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  enquiries  Enquiry[]
+
+  @@index([agentId])
+  @@map("agent_catalogues")
+}
+
+model AgentAccessToken {
+  id         String   @id @default(uuid())
+  agentId    String   @map("agent_id")
+  token      String   @unique
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@map("agent_access_tokens")
+}
+
+model Lead {
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  name       String
+  agencyName String?  @map("agency_name")
+  email      String
+  phone      String?
+  volume     String?
+  notes      String?  @db.Text
+  source     String?
+
+  @@index([email])
+  @@map("leads")
+}
+
+model Enquiry {
+  id              String         @id @default(uuid())
+  createdAt       DateTime       @default(now()) @map("created_at")
+  agentId         String         @map("agent_id")
+  catalogueId     String         @map("catalogue_id")
+  customerName    String         @map("customer_name")
+  customerEmail   String         @map("customer_email")
+  propertyAddress String         @map("property_address")
+  itemsInterestedIn String       @map("items_interested_in")
+  message         String?        @db.Text
+  status          String         @default("NEW")
+
+  agent           Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  catalogue       AgentCatalogue @relation(fields: [catalogueId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([catalogueId])
+  @@index([status])
+  @@map("enquiries")
+}
+
+model CatalogueLead {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  name      String
+  email     String
+  role      String
+  source    String?
+
+  @@index([email])
+  @@map("catalogue_leads")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPLIER FEEDS (e.g. FTG)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SupplierProduct {
+  id                 String   @id @default(cuid())
+  supplier           String   // e.g. "FTG"
+  sku                String
+  productId          String?  // FTG product ID
+  shopifyProductId   String?  // Shopify GID after sync (e.g. gid://shopify/Product/123)
+  ean                String?
+  commodityCode  String?
+  range          String?
+  name           String?  @db.Text
+  description    String?  @db.Text
+  finish         String?
+
+  // Assembled dimensions (stored as JSON: { widthCm, heightCm, depthCm, weightKg })
+  assembledJson  Json?
+
+  // Boxes (array of { boxIndex, ean, lengthCm, widthCm, heightCm, m3, weightKg })
+  boxesJson      Json?
+
+  // Image URLs (array of strings)
+  imagesJson     Json?    // string[]
+
+  // Category flags C1..C19 (object of booleans)
+  categoriesJson Json?
+
+  // Compliance URLs
+  frFabricUrl    String?  @db.Text
+  frFoamUrl      String?  @db.Text
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([supplier, sku])
+  @@index([supplier])
+  @@index([ean])
+}
+
+model SupplierProductPricing {
+  id                  String   @id @default(cuid())
+  supplier            String
+  sku                 String
+  currency            String   @default("GBP")
+  costPrice           Decimal? @db.Decimal(12, 2)
+  tradePrice          Decimal? @db.Decimal(12, 2)
+  rrp                 Decimal? @db.Decimal(12, 2)
+  vatRate             Decimal? @db.Decimal(5, 2)
+  stockQty            Int?
+  availabilityStatus  String?  @db.Text
+  leadTimeDays        Int?
+  discontinued        Boolean?
+  updatedAt           DateTime @updatedAt
+
+  @@unique([supplier, sku])
+  @@index([supplier])
 }

@@ -1,0 +1,5 @@
+Product,Product,Product,Product,Product,Product,Product,Assembled,Assembled,Assembled,Assembled,Box 1,Box 1,Box 1,Box 1,Box 1,Box 1,Image 1,Image 2,C1,C2,C3,Compliance,Compliance
+SKU,Product ID,EAN,Name,Range,Description,Finish,Width (cm),Height (cm),Depth (cm),Weight (kg),Box 1 EAN,Box 1 Length,Box 1 Width,Box 1 Height,Box 1 m3,Box 1 Weight,Image 1,Image 2,C1,C2,C3,FR Fabric URL,FR Foam URL
+FTG-001,P001,5012345678901,Sample Sofa Bed,Range A,Comfy sofa bed, Grey,120,85,210,45.5,5012345678902,120,85,20,0.204,25,https://example.com/img1.jpg,https://example.com/img2.jpg,1,Y,,https://example.com/fabric.pdf,https://example.com/foam.pdf
+FTG-002,P002,5012345678903,Dining Table,Range B,Solid table, Oak,100,75,100,30,,80,60,15,0.072,18,https://example.com/t1.jpg,https://example.com/t2.jpg,,1,1,,
+FTG-003,P003,,Chair,Range A,Desk chair, Black,50,95,55,12.5,,,,,,https://example.com/c1.jpg,,,,,,

@@ -3,8 +3,9 @@ import dynamic from 'next/dynamic';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { GoogleAnalytics } from './components/GoogleAnalytics';
+import { HeatmapAnalytics } from './components/HeatmapAnalytics';
 import { Footer } from './components/Footer';
-import { MegaMenuWrapper } from './components/navigation/MegaMenuWrapper';
+import { SiteHeaderWrapper } from './components/site/SiteHeaderWrapper';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -35,8 +36,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
       </head>
       <body style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
-        <MegaMenuWrapper />
+        <SiteHeaderWrapper />
         <GoogleAnalytics />
+        <HeatmapAnalytics />
         {children}
         <Footer />
       </body>

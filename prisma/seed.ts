@@ -305,6 +305,58 @@ async function main() {
     });
   }
 
+  console.log("Seeding: Example agent catalogue…");
+  const exampleAgent = await prisma.agent.upsert({
+    where: { email: "example-agent@ubeefurniture.com" },
+    create: {
+      name: "Example Agent",
+      agencyName: "Example Lettings",
+      email: "example-agent@ubeefurniture.com",
+      phone: "07000000000",
+      brandingPrimaryColor: "#F7C600",
+      markupType: "PERCENT",
+      markupValue: 12,
+    },
+    update: {
+      name: "Example Agent",
+      agencyName: "Example Lettings",
+      phone: "07000000000",
+      brandingPrimaryColor: "#F7C600",
+      markupType: "PERCENT",
+      markupValue: 12,
+    },
+  });
+
+  await prisma.agentCatalogue.upsert({
+    where: { slug: "example-agent" },
+    create: {
+      agentId: exampleAgent.id,
+      slug: "example-agent",
+      title: "Example Lettings Landlord Catalogue",
+      isActive: true,
+    },
+    update: {
+      agentId: exampleAgent.id,
+      title: "Example Lettings Landlord Catalogue",
+      isActive: true,
+    },
+  });
+
+  await prisma.agentCatalogue.upsert({
+    where: { slug: "demo-agency" },
+    create: {
+      agentId: exampleAgent.id,
+      slug: "demo-agency",
+      title: "Demo Agency Landlord Catalogue",
+      isActive: true,
+    },
+    update: {
+      agentId: exampleAgent.id,
+      title: "Demo Agency Landlord Catalogue",
+      isActive: true,
+    },
+  });
+
   console.log('Seed complete:', {
     clients: clients.length,
     properties: properties.length,

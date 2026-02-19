@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface Option {
   value: string;
@@ -12,20 +15,31 @@ interface CollectionSortProps {
 }
 
 export function CollectionSort({ handle, currentSort, options }: CollectionSortProps) {
+  const searchParams = useSearchParams();
+
+  const buildUrl = (sortValue: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (sortValue === 'default') {
+      params.delete('sort');
+    } else {
+      params.set('sort', sortValue);
+    }
+    const query = params.toString();
+    return `/collections/${handle}${query ? `?${query}` : ''}`;
+  };
+
   return (
-    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-      <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Sort:</span>
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-sm font-semibold text-[var(--ubee-black)]">Sort:</span>
       {options.map((opt) => (
         <Link
           key={opt.value}
-          href={opt.value === 'default' ? `/collections/${handle}` : `/collections/${handle}?sort=${opt.value}`}
-          style={{
-            padding: '0.25rem 0.5rem',
-            fontSize: '0.875rem',
-            background: currentSort === opt.value ? '#000' : '#eee',
-            color: currentSort === opt.value ? '#fff' : '#000',
-            borderRadius: 4,
-          }}
+          href={buildUrl(opt.value)}
+          className={`px-3 py-1.5 text-sm rounded transition-colors ${
+            currentSort === opt.value
+              ? 'bg-[var(--ubee-black)] text-white'
+              : 'bg-gray-100 text-[var(--ubee-black)] hover:bg-gray-200'
+          }`}
         >
           {opt.label}
         </Link>

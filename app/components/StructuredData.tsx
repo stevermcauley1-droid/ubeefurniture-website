@@ -104,3 +104,47 @@ export function BreadcrumbStructuredData({ items }: BreadcrumbStructuredDataProp
     />
   );
 }
+
+interface CollectionFAQStructuredDataProps {
+  collectionTitle: string;
+}
+
+export function CollectionFAQStructuredData({ collectionTitle }: CollectionFAQStructuredDataProps) {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: `What furniture is best for ${collectionTitle.toLowerCase()}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `Our ${collectionTitle.toLowerCase()} collection features durable, well-designed pieces suitable for both homes and rental properties. Each product includes detailed specifications and delivery information on its product page.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: `How do I choose the right ${collectionTitle.toLowerCase()}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: `Browse our ${collectionTitle.toLowerCase()} collection and use the sort options to filter by price, newest, or title. Click any product to see full details, variants, and specifications.`,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: `What is the delivery time for ${collectionTitle.toLowerCase()}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Delivery times vary by product. We confirm lead times after order. Standard delivery applies to most UK addresses. See individual product pages for more details.',
+        },
+      },
+    ],
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+    />
+  );
+}
