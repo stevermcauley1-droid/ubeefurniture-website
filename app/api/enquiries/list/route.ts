@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getPrisma } from '@/lib/db/prisma';
 import { validateAgentToken } from '@/src/lib/agent/server';
 
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_STATUSES = new Set(['NEW', 'IN_PROGRESS', 'WON', 'LOST']);
 
 export async function GET(request: Request) {

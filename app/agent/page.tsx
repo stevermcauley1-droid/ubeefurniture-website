@@ -4,6 +4,8 @@ import AgentDashboard from '@/src/components/agent/AgentDashboard';
 import { getPrisma } from '@/lib/db/prisma';
 import { getCatalogueProductsForAgent, validateAgentToken } from '@/src/lib/agent/server';
 
+export const dynamic = 'force-dynamic';
+
 function getBaseUrl() {
   const envBase = process.env.NEXT_PUBLIC_SITE_URL;
   if (envBase) return envBase.replace(/\/$/, '');

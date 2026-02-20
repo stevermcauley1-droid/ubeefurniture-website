@@ -3,6 +3,8 @@ import EnquiriesInbox from '@/src/components/agent/EnquiriesInbox';
 import { getPrisma } from '@/lib/db/prisma';
 import { validateAgentToken } from '@/src/lib/agent/server';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AgentEnquiriesPage({
   searchParams,
 }: {

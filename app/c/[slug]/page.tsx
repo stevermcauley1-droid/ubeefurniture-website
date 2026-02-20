@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import BrandedCatalogueView from '@/src/components/catalogue/BrandedCatalogueView';
 import { getAgentCatalogueBySlug, getCatalogueProductsPublic } from '@/src/lib/agent/server';
 
+export const dynamic = 'force-dynamic';
+
 export default async function PublicAgentCataloguePage({
   params,
 }: {

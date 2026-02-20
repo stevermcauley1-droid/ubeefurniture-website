@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getPrisma } from '@/lib/db/prisma';
 import { sendEnquiryNotifications } from '@/src/lib/agent/notifications';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
