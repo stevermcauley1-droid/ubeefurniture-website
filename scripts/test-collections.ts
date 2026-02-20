@@ -39,9 +39,13 @@ async function testCollections() {
       console.log('  3. Storefront API token missing required scopes');
       console.log('  4. Using Admin API fallback but no Admin token');
     }
-  } catch (error) {
-    console.error('\n❌ Error:', error.message);
-    console.error('Stack:', error.stack);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('\n❌ Error:', error.message);
+      console.error('Stack:', error.stack);
+    } else {
+      console.error('\n❌ Error:', error);
+    }
   }
 }
 

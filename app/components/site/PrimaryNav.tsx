@@ -300,7 +300,7 @@ function MobileNav() {
                   <button
                     type="button"
                     className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setExpanded(expanded === tab.menuKey ? null : tab.menuKey)}
+                    onClick={() => setExpanded(expanded === tab.menuKey ? null : tab.menuKey!)}
                     aria-expanded={expanded === tab.menuKey}
                   >
                     {tab.label}

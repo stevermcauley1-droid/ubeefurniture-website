@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { trackPurchase } from '@/lib/analytics';
@@ -16,7 +16,7 @@ import { trackPurchase } from '@/lib/analytics';
  * 
  * Or can be called from Shopify checkout redirect with order details.
  */
-export default function ThankYouPage() {
+function ThankYouContent() {
   const searchParams = useSearchParams();
   const hasTracked = useRef(false);
 
@@ -98,5 +98,13 @@ export default function ThankYouPage() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function ThankYouPage() {
+  return (
+    <Suspense fallback={null}>
+      <ThankYouContent />
+    </Suspense>
   );
 }

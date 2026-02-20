@@ -211,7 +211,7 @@ async function createCollection(input: CollectionInput): Promise<{ id: string; t
       return null;
     }
 
-    const isSmart = collection.ruleSet !== null && collection.ruleSet.rules.length > 0;
+    const isSmart = Boolean((collection as { ruleSet?: { rules?: unknown[] } }).ruleSet?.rules?.length);
     
     // Publish to Online Store if not already published
     let published = false;
