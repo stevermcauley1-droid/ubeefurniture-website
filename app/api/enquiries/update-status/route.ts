@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { getPrisma } from '@/lib/db/prisma';
 import { validateAgentToken } from '@/src/lib/agent/server';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const ALLOWED_STATUSES = new Set(['NEW', 'IN_PROGRESS', 'WON', 'LOST']);
 
