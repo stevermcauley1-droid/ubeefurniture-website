@@ -3,6 +3,9 @@ import { Prisma } from '@prisma/client';
 import { getPrisma } from '@/lib/db/prisma';
 import { slugify, validateAgentToken } from '@/src/lib/agent/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
