@@ -22,9 +22,13 @@ function createPrisma(): PrismaClient {
   const connectionString = pickRuntimeConnectionString();
   if (!connectionString) throw new Error("DATABASE_URL and DIRECT_URL are not set");
   let url = connectionString;
-  if (!url.includes("sslmode=")) {
+  // Supabase pooler/direct URLs in this project require relaxed cert verification
+  // in serverless runtime to avoid self-signed chain failures.
+  if (/sslmode=require/i.test(url)) {
+    url = url.replace(/sslmode=require/gi, "sslmode=no-verify");
+  } else if (!url.includes("sslmode=")) {
     url += url.includes("?") ? "&" : "?";
-    url += "sslmode=require";
+    url += "sslmode=no-verify";
   }
   const pool = new Pool({ connectionString: url });
   const adapter = new PrismaPg(pool);
