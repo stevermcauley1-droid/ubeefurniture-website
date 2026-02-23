@@ -41,8 +41,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ enquiries });
   } catch (error) {
-    console.error('[enquiries-list] failed', error);
-    return NextResponse.json({ message: 'Unable to load enquiries.' }, { status: 500 });
+    console.error("ENQUIRIES_LIST_ERROR:", error);
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    );
   }
 }
 
