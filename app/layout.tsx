@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { GoogleAnalytics } from './components/GoogleAnalytics';
 import { HeatmapAnalytics } from './components/HeatmapAnalytics';
 import { Footer } from './components/Footer';
 import { SiteHeaderWrapper } from './components/site/SiteHeaderWrapper';
+import { SupabaseDebugBanner } from './components/SupabaseDebugBanner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -41,6 +43,9 @@ export default function RootLayout({
         <HeatmapAnalytics />
         {children}
         <Footer />
+        <Suspense fallback={null}>
+          <SupabaseDebugBanner />
+        </Suspense>
       </body>
     </html>
   );
