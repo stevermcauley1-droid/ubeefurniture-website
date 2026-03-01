@@ -4,7 +4,7 @@
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { getServerEnv } from '@/src/lib/env.server';
+import { getServerEnv } from '../env.server';
 
 /**
  * Service role client for API routes / server actions. Not for Edge runtime.

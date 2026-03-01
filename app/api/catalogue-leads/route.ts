@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { getServerEnv } from '@/src/lib/env.server';
+import { getServerEnv } from '../../../src/lib/env.server';
+import { supabaseServerAdmin } from '../../../src/lib/supabase/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -23,11 +23,12 @@ function isValidEmail(email: string): boolean {
   return EMAIL_REGEX.test(String(email).toLowerCase());
 }
 
-function getServiceRoleClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = getServerEnv().SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
+function getServiceRoleClientOrNull() {
+  try {
+    return supabaseServerAdmin();
+  } catch {
+    return null;
+  }
 }
 
 async function appendToFallback(row: Record<string, unknown>) {
@@ -114,42 +115,110 @@ export async function POST(request: Request) {
       source: 'landlord_catalogue',
     };
 
-    const supabase = getServiceRoleClient();
+    const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const hasServiceRole = !!getServerEnv().SUPABASE_SERVICE_ROLE_KEY;
+
+    const supabase = getServiceRoleClientOrNull();
 
     if (!supabase) {
       console.error('[catalogue-leads] Supabase not configured; using fallback');
-      await appendToFallback(row);
-      console.log('[Catalogue Lead] mode=fallback at=%s', new Date().toISOString());
-      return json(200, { ok: true, mode: 'fallback' });
+      console.error('[catalogue-leads] env present:', { hasUrl, hasServiceRole });
+      try {
+        await appendToFallback(row);
+        console.log('[Catalogue Lead] mode=fallback at=%s', new Date().toISOString());
+        return NextResponse.json(
+          { ok: true, mode: 'fallback' },
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (fallbackErr) {
+        const msg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+        console.error('[catalogue-leads] error:', msg);
+        console.error('[catalogue-leads] env present:', { hasUrl, hasServiceRole });
+        return NextResponse.json(
+          {
+            ok: false,
+            error: msg,
+            hint: 'missing env / table / permission; check Vercel env and Supabase table.',
+          },
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    const result = await supabase.from('catalogue_leads').insert(row);
+    try {
+      const result = await supabase.from('catalogue_leads').insert(row);
 
-    if (!result.error) {
-      const id = result.data?.[0]?.id;
-      console.log('[Catalogue Lead] mode=supabase at=%s', new Date().toISOString());
-      return json(200, { ok: true, mode: 'supabase', ...(id && { id }) });
+      if (!result.error) {
+        const id = (result.data?.[0] as { id?: string } | undefined)?.id;
+        console.log('[Catalogue Lead] mode=supabase at=%s', new Date().toISOString());
+        return NextResponse.json(
+          { ok: true, mode: 'supabase', ...(id && { id }) },
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const err = result.error;
+      const errMessage = err?.message ?? String(err);
+      const errCode = err?.code ?? 'PGRST000';
+      console.error('[catalogue-leads] error:', errMessage);
+      console.error('[catalogue-leads] env present:', { hasUrl, hasServiceRole });
+      console.error('[catalogue-leads] Supabase insert error:', {
+        message: errMessage,
+        code: errCode,
+        details: (err as { details?: string })?.details,
+        hint: (err as { hint?: string })?.hint,
+      });
+      const hint =
+        !hasUrl || !hasServiceRole
+          ? 'missing env'
+          : errCode === '42P01'
+            ? 'table missing'
+            : 'table / permission';
+      return NextResponse.json(
+        {
+          ok: false,
+          error: errMessage,
+          hint: hint,
+          message: 'Unable to save lead right now. Please try again.',
+        },
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (insertErr) {
+      const message = insertErr instanceof Error ? insertErr.message : String(insertErr);
+      console.error('[catalogue-leads] error:', message);
+      console.error('[catalogue-leads] env present:', { hasUrl, hasServiceRole });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: message,
+          hint: 'missing env / table / permission',
+          message: 'Unable to save lead right now. Please try again.',
+        },
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
-
-    console.error('[catalogue-leads] Supabase insert error', result.error?.message ?? result.error);
-    return json(500, {
-      ok: false,
-      error: 'SERVER_ERROR',
-      message: 'Unable to save lead right now. Please try again.',
-    });
   } catch (err) {
-    console.error('[catalogue-leads] error', err instanceof Error ? err.message : err);
-    return json(500, {
-      ok: false,
-      error: 'SERVER_ERROR',
-      message: 'Something went wrong. Please try again.',
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[catalogue-leads] error:', message);
+    console.error('[catalogue-leads] env present:', {
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceRole: !!getServerEnv().SUPABASE_SERVICE_ROLE_KEY,
     });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+        hint: 'missing env / table / permission',
+        message: 'Something went wrong. Please try again.',
+      },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
 export async function GET() {
   try {
-    const supabase = getServiceRoleClient();
+    const supabase = getServiceRoleClientOrNull();
 
     if (!supabase) {
       console.error('[catalogue-leads] Supabase not configured for GET');
