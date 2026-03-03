@@ -12,14 +12,10 @@ export const revalidate = 0;
 export async function GET() {
   const hasNextPublicUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
   const hasNextPublicAnonKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const hasServerUrl = hasNextPublicUrl;
-  const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const env = {
     hasNextPublicUrl,
     hasNextPublicAnonKey,
-    hasServerUrl,
-    hasServiceRole,
   };
 
   const timestamp = new Date().toISOString();
@@ -46,13 +42,26 @@ export async function GET() {
     if (error) {
       const code = (error as { code?: string }).code ?? 'UNKNOWN';
       const msg = (error as { message?: string }).message ?? String(error);
-      if (code === '42P01' || msg.includes('does not exist') || msg.includes('relation')) {
-        return NextResponse.json({
-          ok: true,
-          env,
-          timestamp,
-          note: 'Reached Supabase; table _health_ping_ does not exist (expected).',
-        });
+      const lower = msg.toLowerCase();
+
+      // Treat \"table does not exist / missing in schema cache\" as a healthy connection:
+      // Supabase has been reached, the DB responded, and only the test table is missing.
+      if (
+        code === '42P01' ||
+        lower.includes('does not exist') ||
+        lower.includes('relation') ||
+        lower.includes('could not find the table') ||
+        lower.includes('schema cache')
+      ) {
+        return NextResponse.json(
+          {
+            ok: true,
+            env,
+            timestamp,
+            note: 'Supabase reachable. _health_ping_ test table missing.',
+          },
+          { status: 200 }
+        );
       }
       return NextResponse.json(
         {
@@ -65,7 +74,7 @@ export async function GET() {
         { status: 503 }
       );
     }
-    return NextResponse.json({ ok: true, env, timestamp });
+    return NextResponse.json({ ok: true, env, timestamp }, { status: 200 });
   } catch (err) {
     const name = err instanceof Error ? err.name : 'Error';
     const message = err instanceof Error ? err.message : String(err);
