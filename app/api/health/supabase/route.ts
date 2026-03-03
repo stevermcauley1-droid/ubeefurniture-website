@@ -24,6 +24,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
+        canReachSupabase: false,
         env,
         timestamp,
         error: 'MISSING_ENV',
@@ -56,6 +57,7 @@ export async function GET() {
         return NextResponse.json(
           {
             ok: true,
+            canReachSupabase: true,
             env,
             timestamp,
             note: 'Supabase reachable. _health_ping_ test table missing.',
@@ -66,6 +68,7 @@ export async function GET() {
       return NextResponse.json(
         {
           ok: false,
+          canReachSupabase: false,
           env,
           timestamp,
           error: code,
@@ -74,7 +77,10 @@ export async function GET() {
         { status: 503 }
       );
     }
-    return NextResponse.json({ ok: true, env, timestamp }, { status: 200 });
+    return NextResponse.json(
+      { ok: true, canReachSupabase: true, env, timestamp },
+      { status: 200 }
+    );
   } catch (err) {
     const name = err instanceof Error ? err.name : 'Error';
     const message = err instanceof Error ? err.message : String(err);
@@ -82,6 +88,7 @@ export async function GET() {
       return NextResponse.json(
         {
           ok: false,
+          canReachSupabase: false,
           env,
           timestamp,
           error: name,
@@ -93,6 +100,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
+        canReachSupabase: false,
         env,
         timestamp,
         error: name,
