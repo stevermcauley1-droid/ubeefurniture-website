@@ -1,34 +1,53 @@
 #!/usr/bin/env node
 /**
- * Smoke test: GET /api/health/supabase and assert ok and canReachSupabase.
+ * Smoke test: root URL availability + GET /api/health/supabase.
  * Usage:
  *   node scripts/smoke-health.mjs
  *   node scripts/smoke-health.mjs https://your-app.vercel.app
- * Exits 0 if healthy, 1 otherwise. No secrets. No lead insert (use test-catalogue-lead.mjs for that, in non-prod only).
+ * Exits 0 if both checks pass, 1 otherwise. No secrets.
  */
 
-const baseUrl = process.argv[2] || 'http://localhost:3000';
-const url = `${baseUrl.replace(/\/$/, '')}/api/health/supabase`;
+const baseUrl = (process.argv[2] || 'http://localhost:3000').replace(/\/$/, '');
+const healthUrl = `${baseUrl}/api/health/supabase`;
 
-async function main() {
-  const res = await fetch(url, { method: 'GET' });
+async function checkSite() {
+  const res = await fetch(baseUrl, { method: 'GET' });
+  const ok = res.status >= 200 && res.status <= 399;
+  return { ok, status: res.status };
+}
+
+async function checkSupabase() {
+  const res = await fetch(healthUrl, { method: 'GET' });
   const text = await res.text();
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    console.error('Health response was not JSON:', text.slice(0, 200));
+    return { ok: false, error: 'Health response was not JSON' };
+  }
+  const ok = data.ok === true && data.canReachSupabase === true;
+  return { ok, data };
+}
+
+async function main() {
+  const [site, supabase] = await Promise.all([checkSite(), checkSupabase()]);
+
+  if (!site.ok) {
+    console.error('Site check failed:', site.status ?? site.error);
+    process.exit(1);
+  }
+  if (!supabase.ok) {
+    console.error(
+      'Supabase health check failed:',
+      supabase.data?.message ?? supabase.data?.error ?? supabase.error ?? 'unknown'
+    );
     process.exit(1);
   }
 
-  if (data.ok === true && data.canReachSupabase === true) {
-    console.log('OK', url, 'canReachSupabase:', data.canReachSupabase);
-    process.exit(0);
-  }
-
-  console.error('Health check failed:', data.message || data.error || 'unknown');
-  console.error('ok:', data.ok, 'canReachSupabase:', data.canReachSupabase);
-  process.exit(1);
+  console.log('Site OK', baseUrl);
+  console.log('Supabase OK', healthUrl);
+  console.log('canReachSupabase:', supabase.data?.canReachSupabase ?? true);
+  process.exit(0);
 }
 
 main().catch((err) => {
