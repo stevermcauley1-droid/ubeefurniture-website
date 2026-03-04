@@ -67,9 +67,27 @@ After leads are saving, run once in Supabase SQL Editor to remove unused `role` 
 
 **File:** `supabase/migrations/20260304000000_harden_catalogue_leads.sql`
 
-Then run the smoke test (health only, no lead insert):
+Then run the smoke test locally (site + Supabase):
 
 ```bash
 node scripts/smoke-health.mjs
 node scripts/smoke-health.mjs https://ubeefurniture-website.vercel.app
 ```
+
+---
+
+## CI smoke test (current state)
+
+- **Workflow:** `Smoke Health Check` (`.github/workflows/smoke-health.yml`) runs on every push to `main`.
+- **Checks:** Root URL returns 200–399; `/api/health/supabase` returns `ok: true` and `canReachSupabase: true`.
+- **View latest run logs** (PowerShell, requires [GitHub CLI](https://cli.github.com/) and `gh auth login`):
+
+```powershell
+cd "c:\Users\steve\ubeefurniture website"
+$id = (gh run list --workflow="Smoke Health Check" --limit 1 --json databaseId -q '.[0].databaseId'); gh run view $id --log
+```
+
+- **Success in logs:** You should see:
+  - `Site OK https://ubeefurniture-website.vercel.app`
+  - `Supabase OK https://ubeefurniture-website.vercel.app/api/health/supabase`
+  - `canReachSupabase: true`
