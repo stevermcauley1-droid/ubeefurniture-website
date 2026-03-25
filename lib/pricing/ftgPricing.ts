@@ -36,8 +36,10 @@ export interface ComputeSellPriceResult {
 }
 
 const DEFAULT_RULES: Required<FtgPricingRules> = {
-  marginWithRrp: 1.45,
-  marginNoRrp: 1.55,
+  // Requirement: price = cost * 1.30 (add 30% on top of cost)
+  // If an RRP exists, we still cap at RRP (so we never exceed RRP).
+  marginWithRrp: 1.3,
+  marginNoRrp: 1.3,
   roundStep: 1,
 };
 

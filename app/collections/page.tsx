@@ -45,11 +45,14 @@ export default async function CollectionsListPage() {
       {!apiError && list.length === 0 && (
         <div style={{ padding: '2rem', textAlign: 'center', background: '#f8f8f8', borderRadius: 8, marginTop: '1rem' }}>
           <p style={{ margin: 0, color: '#666' }}>
-            No collections available. Create collections in{' '}
+            No collections to show yet. Create collections in{' '}
             <a href={`https://${process.env.SHOPIFY_STORE_DOMAIN || 'your-store'}.myshopify.com/admin/collections`} target="_blank" rel="noopener noreferrer" style={{ color: '#0066cc' }}>
               Shopify Admin
             </a>
-            .
+            , then add them to the <strong>Headless</strong> sales channel so they appear here.
+          </p>
+          <p style={{ margin: '0.75rem 0 0', fontSize: '0.875rem', color: '#888' }}>
+            Settings → Apps and sales channels → Headless → Manage → add your collections.
           </p>
         </div>
       )}

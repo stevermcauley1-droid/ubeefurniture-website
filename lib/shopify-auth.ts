@@ -12,6 +12,15 @@ import * as path from "path";
 config({ path: ".env.local" });
 config({ path: ".env" });
 
+// Optional gitignored credentials file (used by other scripts).
+// Keeps SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET out of .env.local.
+const credsPath =
+  process.env.SHOPIFY_CREDENTIALS_FILE ||
+  path.join(process.cwd(), ".env.shopify.credentials");
+if (fs.existsSync(credsPath)) {
+  config({ path: credsPath });
+}
+
 interface TokenCache {
   access_token: string;
   expires_at: number; // Unix timestamp

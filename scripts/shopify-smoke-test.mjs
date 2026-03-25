@@ -34,7 +34,7 @@ const STOREFRONT_API_VERSION = '2024-01';
 function maskToken(t) {
   if (!t || typeof t !== 'string') return '(empty)';
   if (t.startsWith('shpss_')) return 'shpss_**** (app secret — not Storefront)';
-  if (t.startsWith('shpat_')) return 'shpat_**** (Admin token — use Headless token)';
+  if (t.startsWith('shpat_')) return 'shpat_**** (private Storefront token from Headless is OK)';
   if (t.length <= 8) return '****';
   return t.slice(0, 4) + '****' + t.slice(-4);
 }
@@ -64,19 +64,24 @@ async function main() {
   }
 
   const url = `https://${DOMAIN}/api/${STOREFRONT_API_VERSION}/graphql.json`;
+  const isPrivateToken = TOKEN.startsWith('shpat_');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(isPrivateToken
+      ? { 'Shopify-Storefront-Private-Token': TOKEN }
+      : { 'X-Shopify-Storefront-Access-Token': TOKEN }),
+  };
 
   const shopRes = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': TOKEN,
-    },
+    headers,
     body: JSON.stringify({ query: '{ shop { name } }' }),
   });
 
   if (shopRes.status === 401 || shopRes.status === 403) {
-    console.error('Storefront API returned', shopRes.status);
-    console.error('Check token created in Headless → Storefront API → Access tokens and correct scopes.');
+    const errBody = await shopRes.text();
+    console.error('Storefront API returned', shopRes.status, errBody.slice(0, 300));
+    console.error('Check token: Headless → Storefront API → Reveal private token again (it may have been rotated).');
     process.exit(1);
   }
 
@@ -99,10 +104,7 @@ async function main() {
 
   const productsRes = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': TOKEN,
-    },
+    headers,
     body: JSON.stringify({
       query: 'query { products(first: 1) { edges { node { id } } } }',
     }),

@@ -35,6 +35,11 @@ npm run dev
 - Smoke output shows: **Storefront token: present** (masked) and **Storefront API query: OK** (shop name or product count).  
 - Open http://localhost:3000 (or 3001 if 3000 is in use). Homepage/collections load products with **no 401/403** errors.
 
+**If you get 401 UNAUTHORIZED**  
+- On **Headless → Storefront API**, click **“Generate new token”** (or **Rotate private access token**), then **Reveal** and copy the **new** private token.  
+- Replace `SHOPIFY_STOREFRONT_ACCESS_TOKEN` in `.env.local` with that value (no spaces), save, and run `npm run shopify:smoke` again.  
+- Old tokens stop working after rotation; use only the token currently shown after generating.
+
 **Required env keys used by the Storefront client:**  
 `SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (or fallback `SHOPIFY_STOREFRONT_TOKEN`). Never commit `.env.local`; scripts only show the token masked.
 

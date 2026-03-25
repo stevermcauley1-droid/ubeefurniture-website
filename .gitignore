@@ -28,9 +28,13 @@ yarn-error.log*
 .env.*.local
 .env*.local
 .env.local
+.env.shopify.credentials
 
 # Shopify token cache (contains sensitive access tokens)
 .shopify-token-cache.json
+
+# local lead fallback (catalogue-leads when Supabase not used)
+/data/
 
 # vercel
 .vercel

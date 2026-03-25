@@ -213,7 +213,7 @@ async function createCollection(input: CollectionInput): Promise<{ id: string; t
 
     const isSmart = Boolean((collection as { ruleSet?: { rules?: unknown[] } }).ruleSet?.rules?.length);
     
-    // Publish to Online Store if not already published
+        // Publish to Online Store and (if present) Headless sales channel
     let published = false;
     if (input.published) {
       try {
@@ -239,42 +239,69 @@ async function createCollection(input: CollectionInput): Promise<{ id: string; t
         const onlineStorePub = pubData.publications?.edges?.find(
           (e) => e.node.name === "Online Store"
         );
+
+        // Publication name can vary slightly; match loosely.
+        const headlessPub = pubData.publications?.edges?.find((e) => {
+          const n = String(e.node.name || "").toLowerCase();
+          return n.includes("headless");
+        });
         
-        if (onlineStorePub) {
-          const publishMutation = `
-            mutation PublishCollection($id: ID!, $publicationId: ID!) {
-              publishablePublish(id: $id, input: { publicationId: $publicationId }) {
-                publishable {
-                  ... on Collection {
-                    id
-                  }
-                }
-                userErrors {
-                  field
-                  message
+        const publishMutation = `
+          mutation PublishCollection($id: ID!, $publicationId: ID!) {
+            publishablePublish(id: $id, input: { publicationId: $publicationId }) {
+              publishable {
+                ... on Collection {
+                  id
                 }
               }
+              userErrors {
+                field
+                message
+              }
             }
-          `;
+          }
+        `;
+
+        const errors: string[] = [];
+
+        if (onlineStorePub) {
           const publishData = await adminGraphql<{
             publishablePublish?: {
               publishable?: { id?: string };
               userErrors: { field: string; message: string }[];
             };
-          }>(publishMutation, { 
+          }>(publishMutation, {
             id: collection.id,
             publicationId: onlineStorePub.node.id,
           });
-          
-          const errors = publishData.publishablePublish?.userErrors?.filter((e) => e.message) || [];
-          if (errors.length === 0) {
-            published = true;
-          } else {
-            console.warn(`  ⚠️  ${input.title}: Could not publish:`, errors.map((e) => e.message).join("; "));
-          }
+
+          const errs =
+            publishData.publishablePublish?.userErrors?.filter((e) => e.message) || [];
+          errors.push(...errs.map((e) => e.message));
         } else {
           console.warn(`  ⚠️  ${input.title}: Online Store publication not found`);
         }
+
+        if (headlessPub) {
+          const publishData = await adminGraphql<{
+            publishablePublish?: {
+              publishable?: { id?: string };
+              userErrors: { field: string; message: string }[];
+            };
+          }>(publishMutation, {
+            id: collection.id,
+            publicationId: headlessPub.node.id,
+          });
+
+          const errs =
+            publishData.publishablePublish?.userErrors?.filter((e) => e.message) || [];
+          errors.push(...errs.map((e) => e.message));
+        } else {
+          console.warn(`  ⚠️  ${input.title}: Headless publication not found (skipping headless publish)`);
+        }
+
+        // Mark published=true if we succeeded with at least one publication
+        published = errors.length === 0;
       } catch (e) {
         console.warn(`  ⚠️  ${input.title}: Could not publish:`, e instanceof Error ? e.message : String(e));
       }
@@ -315,7 +342,6 @@ async function getExistingCollections(): Promise<{ handles: Set<string>; details
                 condition
               }
             }
-            published
           }
         }
       }
@@ -378,16 +404,98 @@ async function main() {
     if (existingCollection) {
       const isSmart = existingCollection.ruleSet !== null;
       const publications = existingCollection.resourcePublicationsV2?.edges || [];
+      const publicationNames = publications
+        .map((p) => String(p.node.publication.name || ""))
+        .filter(Boolean);
+      const headlessPublished = publicationNames.some((n) =>
+        n.toLowerCase().includes("headless")
+      );
       const published = publications.length > 0;
-      const status = [];
-      if (!isSmart) status.push("NOT SMART");
-      if (!published) status.push("NOT PUBLISHED");
-      
-      if (status.length > 0) {
-        console.log(`⚠️  ${input.title} (exists but: ${status.join(", ")})`);
-      } else {
-        console.log(`⏭️  ${input.title} (already exists - Smart & Published)`);
+
+      // If it exists and it's not published to Headless yet, publish it to Headless and continue.
+      if (isSmart && input.published && !headlessPublished) {
+        try {
+          // Get publications list to find the Headless publicationId
+          const publicationsQuery = `
+            query GetPublications {
+              publications(first: 10) {
+                edges {
+                  node {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+          `;
+
+          const pubData = await adminGraphql<{
+            publications?: {
+              edges?: Array<{ node: { id: string; name: string } }>;
+            };
+          }>(publicationsQuery);
+
+          const headlessPub = pubData.publications?.edges?.find((e) => {
+            const n = String(e.node.name || "").toLowerCase();
+            return n.includes("headless");
+          });
+
+          if (headlessPub?.node?.id) {
+            const publishMutation = `
+              mutation PublishCollection($id: ID!, $publicationId: ID!) {
+                publishablePublish(id: $id, input: { publicationId: $publicationId }) {
+                  publishable {
+                    ... on Collection { id }
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `;
+
+            const publishData = await adminGraphql<{
+              publishablePublish?: {
+                publishable?: { id?: string };
+                userErrors: { field: string; message: string }[];
+              };
+            }>(publishMutation, {
+              id: existingCollection.id,
+              publicationId: headlessPub.node.id,
+            });
+
+            const errs =
+              publishData.publishablePublish?.userErrors?.filter((e) => e.message) || [];
+
+            if (errs.length === 0) {
+              console.log(`✅ Republished to Headless: ${input.title} (${existingCollection.handle})`);
+              // Headless is now published
+              skipped.push({ title: input.title, isSmart, published: true });
+              continue;
+            }
+
+            console.warn(
+              `⚠️  Could not republish to Headless: ${input.title} (${existingCollection.handle}):`,
+              errs.map((e) => e.message).join("; ")
+            );
+          } else {
+            console.warn(`⚠️  Headless publication not found; cannot republish ${input.title}`);
+          }
+        } catch (e) {
+          console.warn(`⚠️  Error republishing ${input.title} to Headless:`, e);
+        }
       }
+
+      // Otherwise, skip (already exists).
+      if (!isSmart) {
+        console.log(`⏭️  ${input.title} exists but is not a Smart collection; leaving as-is`);
+      } else if (headlessPublished) {
+        console.log(`⏭️  ${input.title} (already exists - Headless published)`);
+      } else {
+        console.log(`⏭️  ${input.title} exists but not headless-published yet (republish attempted if possible)`);
+      }
+
       skipped.push({ title: input.title, isSmart, published });
       continue;
     }

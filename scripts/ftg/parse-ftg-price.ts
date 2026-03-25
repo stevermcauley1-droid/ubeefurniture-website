@@ -104,9 +104,32 @@ export function parseFtgPrice(options: ParseFtgPriceOptions = {}): FtgPriceRow[]
   const headerRow = rows[0];
   const col = {
     sku: findColumnIndex(headerRow, "SKU", "Product Code", "Code", "Part No", "Part No.", "Item Code"),
-    costPrice: findColumnIndex(headerRow, "Cost", "Cost Price", "Cost Price (ex VAT)", "Cost (ex VAT)"),
-    tradePrice: findColumnIndex(headerRow, "Trade", "Trade Price", "Trade Price (ex VAT)"),
-    rrp: findColumnIndex(headerRow, "RRP", "Selling Price", "Retail", "Retail Price", "Price"),
+    // Your FTG price CSV (FTG-Price-List-2026-02-17.csv) uses headers like:
+    //   "From 20% off" and "Full List" (no explicit "Cost"/"RRP" columns).
+    // We map:
+    //   costPrice = "From 20% off" (fallback: "Collected")
+    //   rrp = "Full List" (fallback: "Price")
+    costPrice: findColumnIndex(
+      headerRow,
+      "Cost",
+      "Cost Price",
+      "Cost Price (ex VAT)",
+      "Cost (ex VAT)",
+      "From 20% off",
+      "From 20% Off",
+      "Collected"
+    ),
+    tradePrice: findColumnIndex(headerRow, "Trade", "Trade Price", "Trade Price (ex VAT)", "HD"),
+    rrp: findColumnIndex(
+      headerRow,
+      "RRP",
+      "Selling Price",
+      "Retail",
+      "Retail Price",
+      "Price",
+      "Full List",
+      "Full list"
+    ),
     vatRate: findColumnIndex(headerRow, "VAT", "VAT Rate", "VAT %"),
     stockQty: findColumnIndex(headerRow, "Stock", "Qty", "Quantity", "Qty In Stock", "Available"),
     availabilityStatus: findColumnIndex(headerRow, "Availability", "Status", "Stock Status", "Availability Status"),

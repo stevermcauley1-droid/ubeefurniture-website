@@ -19,7 +19,8 @@ const domain = () =>
 /** Prefer SHOPIFY_STOREFRONT_ACCESS_TOKEN; fallback to SHOPIFY_STOREFRONT_TOKEN for compatibility. */
 const storefrontToken = () =>
   process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || process.env.SHOPIFY_STOREFRONT_TOKEN;
-const adminToken = () => process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+const adminToken = () =>
+  process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || process.env.SHOPIFY_ADMIN_API_TOKEN;
 const dataMode = () => process.env.SHOPIFY_DATA_MODE || 'storefront';
 
 function validateStorefrontToken(): void {
@@ -30,6 +31,7 @@ function validateStorefrontToken(): void {
       'MISSING'
     );
   }
+  // shpss_ = app secret (wrong). shpat_ can be Headless Storefront private token (OK).
   if (token.startsWith('shpss_')) {
     throw new ShopifyTokenError(TOKEN_GUIDANCE.wrongType, 'WRONG_TYPE');
   }
@@ -72,14 +74,19 @@ export async function storefrontFetch<T>(query: string, variables?: Record<strin
       'MISSING'
     );
   }
+  // Private tokens (Headless shpat_...) use Shopify-Storefront-Private-Token; public use X-Shopify-Storefront-Access-Token
+  const isPrivateToken = config.token.startsWith('shpat_');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(isPrivateToken
+      ? { 'Shopify-Storefront-Private-Token': config.token }
+      : { 'X-Shopify-Storefront-Access-Token': config.token }),
+  };
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   const res = await fetch(getStorefrontUrl(), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': config.token,
-    },
+    headers,
     body: JSON.stringify({ query, variables }),
     next: { revalidate: 60 },
     signal: controller.signal,
@@ -500,18 +507,17 @@ export async function getCollections(first = 10): Promise<CollectionsQueryResult
         collectionsCount,
         collections: result.collections?.edges?.map((e) => ({ id: e.node.id, handle: e.node.handle, title: e.node.title })) ?? [],
       });
-      
-      // If Storefront API only returns frontpage, try Admin API fallback
-      const nonFrontpage = result.collections?.edges?.filter((e) => e.node.handle !== 'frontpage') || [];
-      if (collectionsCount > 0 && nonFrontpage.length === 0) {
-        const hasAdmin = await hasAdminAccess();
-        if (hasAdmin) {
-          console.log('[getCollections] Storefront API only returned frontpage, trying Admin API fallback');
-          throw new Error('Fallback to Admin API');
-        }
+
+      // If Storefront only returns the default "frontpage" collection, it usually means
+      // Headless channel visibility hasn't propagated yet for those collections.
+      // In that case, fall back to Admin so the UI still shows real collections.
+      const edges = result.collections?.edges ?? [];
+      const nonFrontpageEdges = edges.filter((e) => e.node.handle !== 'frontpage');
+      if (nonFrontpageEdges.length === 0) {
+        console.log('[getCollections] Storefront returned only frontpage; using Admin API fallback for collections list.');
+      } else {
+        return result;
       }
-      
-      return result;
     } catch (e) {
       // If Storefront fails or only returns frontpage, try Admin API
       const hasAdmin = await hasAdminAccess();
@@ -693,12 +699,81 @@ export async function getCollectionByHandle(
   if (!getStorefrontConfig()) {
     return { collection: null };
   }
-  return storefrontFetch<CollectionByHandleResult>(COLLECTION_BY_HANDLE, {
-    handle,
-    firstProducts,
-    sortKey: sortKey ?? 'COLLECTION_DEFAULT',
-    reverse: reverse ?? false,
-  });
+  try {
+    const storefrontResult = await storefrontFetch<CollectionByHandleResult>(COLLECTION_BY_HANDLE, {
+      handle,
+      firstProducts,
+      sortKey: sortKey ?? 'COLLECTION_DEFAULT',
+      reverse: reverse ?? false,
+    });
+    if (storefrontResult.collection) return storefrontResult;
+
+    // Storefront succeeded but collection is null -> try Admin.
+    const hasAdmin = await hasAdminAccess();
+    if (hasAdmin) {
+      console.log(`[getCollectionByHandle] Storefront returned null for ${handle}; falling back to Admin.`);
+      const data = await adminFetch<{
+        collection: {
+          id: string;
+          handle: string;
+          title: string;
+          descriptionHtml?: string | null;
+          image?: { url: string; altText?: string | null; width?: number; height?: number } | null;
+          products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
+        } | null;
+      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
+      if (!data.collection) return { collection: null };
+      return {
+        collection: {
+          id: data.collection.id,
+          handle: data.collection.handle,
+          title: data.collection.title,
+          description: data.collection.descriptionHtml ?? null,
+          image: data.collection.image
+            ? { url: data.collection.image.url, altText: data.collection.image.altText ?? null, width: data.collection.image.width || 0, height: data.collection.image.height || 0 }
+            : null,
+          products: {
+            edges: data.collection.products.edges.map((e) => ({ node: mapAdminProduct(e.node as Parameters<typeof mapAdminProduct>[0]) })),
+            pageInfo: data.collection.products.pageInfo,
+          },
+        },
+      };
+    }
+    return storefrontResult;
+  } catch (e) {
+    // If Storefront can't see the collection yet, fall back to Admin so the page doesn't 404.
+    const hasAdmin = await hasAdminAccess();
+    if (hasAdmin) {
+      console.log(`[getCollectionByHandle] Storefront failed for ${handle}; falling back to Admin.`);
+      const data = await adminFetch<{
+        collection: {
+          id: string;
+          handle: string;
+          title: string;
+          descriptionHtml?: string | null;
+          image?: { url: string; altText?: string | null; width?: number; height?: number } | null;
+          products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
+        } | null;
+      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
+      if (!data.collection) return { collection: null };
+      return {
+        collection: {
+          id: data.collection.id,
+          handle: data.collection.handle,
+          title: data.collection.title,
+          description: data.collection.descriptionHtml ?? null,
+          image: data.collection.image
+            ? { url: data.collection.image.url, altText: data.collection.image.altText ?? null, width: data.collection.image.width || 0, height: data.collection.image.height || 0 }
+            : null,
+          products: {
+            edges: data.collection.products.edges.map((e) => ({ node: mapAdminProduct(e.node as Parameters<typeof mapAdminProduct>[0]) })),
+            pageInfo: data.collection.products.pageInfo,
+          },
+        },
+      };
+    }
+    throw e;
+  }
 }
 
 export interface ProductByHandleResult {
