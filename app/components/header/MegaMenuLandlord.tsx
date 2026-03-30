@@ -13,7 +13,7 @@ export function MegaMenuLandlord({ isOpen, onClose }: MegaMenuLandlordProps) {
   return (
     <div className="absolute left-0 top-full w-full bg-white border-t border-gray-200 shadow-lg z-50" onMouseLeave={onClose} role="menu" aria-label="Landlord Solutions menu">
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {LANDLORD_MENU.map((column, index) => (
             <div key={index}>
               <h3 className="font-semibold text-[var(--ubee-black)] mb-3 text-sm uppercase tracking-wide">{column.title}</h3>

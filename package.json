@@ -26,12 +26,14 @@
     "ftg:build-shopify": "node scripts/import/ftg/build-shopify-products.mjs",
     "ftg:import:dry": "node scripts/import/ftg/import-to-shopify.mjs --dry-run --limit=10",
     "ftg:import": "node scripts/import/ftg/import-to-shopify.mjs --apply --limit=10",
+    "ftg:import:sku": "node scripts/import/ftg/import-to-shopify.mjs --apply --limit=1 --publish --sync-price",
     "ftg:sync:prices:30pct": "npx tsx scripts/ftg/update-shopify-variant-prices-from-ftg.ts --limit=50",
     "collections:create": "tsx scripts/create-collections.ts",
     "collections:verify": "tsx scripts/verify-collections.ts",
     "shopify:test-auth": "tsx scripts/test-shopify-auth.ts",
     "ftg:import:dropbox": "node scripts/import-ftg-products.js",
-    "shopify:admin-token": "node scripts/shopify/fetch-admin-token-client-credentials.mjs"
+    "shopify:admin-token": "node scripts/shopify/fetch-admin-token-client-credentials.mjs",
+    "ftg:import:retry-failed": "node scripts/import/ftg/retry-failed-imports.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.0",

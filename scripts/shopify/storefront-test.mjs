@@ -54,20 +54,29 @@ async function main() {
 
   const url = `https://${SHOP}/api/${STOREFRONT_API_VERSION}/graphql.json`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': TOKEN,
-    },
-    body: JSON.stringify({ query: '{ shop { name } }' }),
-  });
+  async function postStorefront(headers) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify({ query: '{ shop { name } }' }),
+    });
+  }
+
+  let storefrontAuthHeaders = { 'X-Shopify-Storefront-Access-Token': TOKEN };
+  let res = await postStorefront(storefrontAuthHeaders);
+
+  // Private Headless tokens (often shpat_…) require this header instead.
+  if (res.status === 401 || res.status === 403) {
+    storefrontAuthHeaders = { 'Shopify-Storefront-Private-Token': TOKEN };
+    res = await postStorefront(storefrontAuthHeaders);
+  }
 
   if (res.status === 401 || res.status === 403) {
     console.error('Storefront API returned', res.status);
     console.error('Token (masked):', maskToken(TOKEN));
     console.error('');
     console.error('Check token created in Headless → Storefront API → Access tokens and correct scopes.');
+    console.error('If using a private token, ensure Shopify-Storefront-Private-Token is used (this script retries with that header).');
     process.exit(1);
   }
 
@@ -91,7 +100,7 @@ async function main() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': TOKEN,
+      ...storefrontAuthHeaders,
     },
     body: JSON.stringify({
       query: `query { collections(first: 1) { edges { node { handle title } } } }`,

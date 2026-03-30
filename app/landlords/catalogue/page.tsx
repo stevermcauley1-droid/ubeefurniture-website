@@ -1,44 +1,50 @@
 import type { Metadata } from 'next';
 import CatalogueLeadForm from '@/src/components/catalogue/CatalogueLeadForm';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Landlord Catalogue PDF | uBee Furniture',
   description:
-    'Download the latest landlord furniture catalogue and request tailored landlord-ready package support.',
+    'Get the Landlord Fast-Furnish Catalogue: room bundles, 48–72hr turnaround, free delivery and assembly, VAT invoices and 30-day terms.',
 };
 
 export default function LandlordsCataloguePage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
-      <section className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6">
-        <h1 className="text-3xl font-bold text-[var(--ubee-black)]">Download Landlord Catalogue (PDF)</h1>
-        <p className="mt-2 text-zinc-600">
-          View our latest landlord-ready ranges and furnishing options.
-        </p>
-        <ul className="mt-4 list-disc space-y-1 pl-6 text-sm text-zinc-700">
-          <li>Landlord-ready packages</li>
-          <li>Delivery & assembly available</li>
-          <li>Fast turnaround for void properties</li>
-        </ul>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <a
-            href="/catalogues/landlord-catalogue-2025.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block rounded-lg bg-zinc-900 px-5 py-3 text-sm font-semibold text-white"
-          >
-            Download PDF
-          </a>
-          <a
-            href="/agent/onboarding"
-            className="inline-block rounded-lg border border-zinc-300 bg-white px-5 py-3 text-sm font-semibold text-zinc-900"
-          >
-            Request a trade account
-          </a>
-        </div>
-      </section>
-
-      <CatalogueLeadForm />
+    <main className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
+      <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+        Get the Landlord Fast-Furnish Catalogue (Bundles + 48–72hr Turnaround)
+      </h1>
+      <ul className="mt-6 space-y-2 text-zinc-700">
+        <li className="flex items-start gap-2">
+          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ubee-yellow)]" />
+          Ready-made room bundles (student / HMO / SA)
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ubee-yellow)]" />
+          Free delivery + assembly options
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ubee-yellow)]" />
+          VAT invoices + 30-day terms available
+        </li>
+        <li className="flex items-start gap-2">
+          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ubee-yellow)]" />
+          Priority stock lines (fast replacement)
+        </li>
+      </ul>
+      <p className="mt-4 text-sm text-zinc-500">
+        Used by landlords and letting agents across South Wales.
+      </p>
+      <div className="mt-8">
+        <CatalogueLeadForm />
+      </div>
+      <p className="mt-6 text-center text-sm text-zinc-500">
+        <Link href="/landlords/how-it-works" className="hover:underline">How it works</Link>
+        {' · '}
+        <Link href="/landlords/turnaround" className="hover:underline">Turnaround</Link>
+        {' · '}
+        <Link href="/landlords/terms" className="hover:underline">Terms</Link>
+      </p>
     </main>
   );
 }

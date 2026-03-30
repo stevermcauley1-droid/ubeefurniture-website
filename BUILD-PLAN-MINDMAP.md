@@ -1,4 +1,4 @@
-# Ubee Furniture — Headless Shopify + Next.js Build Plan (Mind Map)
+-# Ubee Furniture — Headless Shopify + Next.js Build Plan (Mind Map)
 
 Operator-grade build: launch-critical first, AR/AI later.
 

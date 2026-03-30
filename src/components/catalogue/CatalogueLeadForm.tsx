@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { trackLeadSubmit, trackEvent } from '@/lib/analytics';
 
 const PERSONA_OPTIONS = [
   { value: 'landlord', label: 'Landlord' },
@@ -31,6 +32,7 @@ export default function CatalogueLeadForm() {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-lg bg-[var(--ubee-yellow,#F7C600)] px-6 py-3 font-semibold text-zinc-900 hover:opacity-95"
+              onClick={() => trackEvent('file_download', { file_name: 'landlord-catalogue.pdf', link_url: CATALOGUE_PDF_PATH })}
             >
               Download catalogue (PDF)
             </a>
@@ -106,11 +108,16 @@ export default function CatalogueLeadForm() {
                     return;
                   }
 
+                  trackLeadSubmit(undefined, 'GBP');
                   setSuccess(true);
                   form.reset();
                 } catch (err) {
                   const message =
-                    err instanceof Error ? err.message : 'Unable to submit right now. Please try again.';
+                    err instanceof Error && err.name === 'AbortError'
+                      ? 'Request timed out. Please try again.'
+                      : err instanceof Error
+                        ? err.message
+                        : 'Unable to submit right now. Please try again.';
                   setError(message);
                   console.log('[CatalogueLeadForm] error', {
                     status: 'network',
