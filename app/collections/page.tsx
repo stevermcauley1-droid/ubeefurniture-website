@@ -7,19 +7,11 @@ export default async function CollectionsListPage() {
   let apiError: string | null = null;
 
   try {
-    const result = await getCollections(20);
+    const result = await getCollections(250);
     const { collections } = result;
-    const allCollections = collections.edges
+    list = collections.edges
       .map((e) => e.node)
       .filter((c) => c.handle !== 'frontpage');
-    const uniqueCollections = new Map<string, (typeof allCollections)[0]>();
-    allCollections.forEach((c) => {
-      const existing = uniqueCollections.get(c.title);
-      if (!existing || c.handle.localeCompare(existing.handle) > 0) {
-        uniqueCollections.set(c.title, c);
-      }
-    });
-    list = Array.from(uniqueCollections.values());
   } catch (err) {
     if (err instanceof ShopifyTokenError) {
       apiError = 'Store connection not configured. Add SHOPIFY_STOREFRONT_ACCESS_TOKEN to .env.local.';
