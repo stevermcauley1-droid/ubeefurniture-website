@@ -13,6 +13,7 @@ type ProductNode = {
   handle: string;
   title: string;
   productType: string;
+  descriptionHtml: string | null;
   tags: string[];
 };
 
@@ -24,8 +25,9 @@ function hasAny(text: string, needles: string[]): boolean {
 function classifySubcats(p: ProductNode): string[] {
   const title = String(p.title || "").toLowerCase();
   const type = String(p.productType || "").toLowerCase();
+  const desc = String(p.descriptionHtml || "").toLowerCase();
   const tags = (p.tags || []).map((t) => t.toLowerCase());
-  const all = `${title} ${type} ${tags.join(" ")}`;
+  const all = `${title} ${type} ${desc} ${tags.join(" ")}`;
   const out = new Set<string>();
 
   const isKids = hasAny(all, ["kids", "4kids", "kid "]);
@@ -44,6 +46,14 @@ function classifySubcats(p: ProductNode): string[] {
       !isDining &&
       !hasAny(all, ["bar desk", "bedside"]));
   const isBedroom = hasAny(all, ["bed", "wardrobe", "chest of drawers", "bedside", "mattress", "bed slat", "sliding wardrobe"]);
+  const cubeShelfTextSignals = [
+    "cube shelf",
+    "cube shelves",
+    "cube shelving",
+    "cube storage shelving",
+    "open storage cubes",
+    "cube open storage",
+  ];
 
   // Top tabs — office bookcases / wall units are not living-room (FTG splits Office vs Living)
   if (
@@ -72,7 +82,7 @@ function classifySubcats(p: ProductNode): string[] {
   if (hasAny(all, ["coffee table"]) || tags.includes("coffee-tables")) out.add("coffee-tables");
   if (hasAny(all, ["side table"])) out.add("side-tables");
   if (hasAny(all, ["nest of tables"])) out.add("nest-of-tables");
-  if (hasAny(all, ["cube shelf"])) out.add("cube-shelves");
+  if (hasAny(all, cubeShelfTextSignals)) out.add("cube-shelves");
   if (hasAny(all, ["bookcase", "bookshelf"]) || tags.includes("bookcases")) out.add("bookcases");
   if (hasAny(all, ["mirror"]) || tags.includes("mirrors")) out.add("mirrors");
   if (hasAny(all, ["coat rack"])) out.add("coat-racks");
@@ -111,7 +121,7 @@ function classifySubcats(p: ProductNode): string[] {
   if (isKids && hasAny(all, ["gaming desk"])) out.add("kids-gaming-desks");
   if (isKids && hasAny(all, ["wall shelf"])) out.add("kids-wall-shelves");
   if (isKids && hasAny(all, ["bookcase"])) out.add("kids-bookcases");
-  if (isKids && hasAny(all, ["cube shelf"])) out.add("kids-cube-shelves");
+  if (isKids && hasAny(all, cubeShelfTextSignals)) out.add("kids-cube-shelves");
   if (isKids && hasAny(all, ["toy storage"])) out.add("kids-toy-storage");
 
   // Office subtabs (align with FTG Office menu: desks, gaming, chairs, cabinets, bookcases, cubes, walls, professional)
@@ -187,6 +197,7 @@ async function main() {
               handle
               title
               productType
+              descriptionHtml
               tags
             }
           }
