@@ -72,7 +72,14 @@ const TARGETS: TargetCollection[] = [
     ],
   },
   { title: "Office", handle: "office", rules: [{ column: "TAG", relation: "EQUALS", condition: "desks" }] },
-  { title: "Kids", handle: "kids", rules: [{ column: "TAG", relation: "EQUALS", condition: "kids" }] },
+  {
+    title: "Kids",
+    handle: "kids",
+    rules: [
+      { column: "TAG", relation: "EQUALS", condition: "ftg_subcat:kids" },
+      { column: "TAG", relation: "EQUALS", condition: "kids" },
+    ],
+  },
 ];
 
 async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
