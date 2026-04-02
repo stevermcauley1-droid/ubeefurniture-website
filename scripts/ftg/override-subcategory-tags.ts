@@ -65,7 +65,7 @@ async function main() {
         `mutation($input: ProductInput!) {
           productUpdate(input: $input) { userErrors { message } }
         }`,
-        { input: { id: node.id, tags: [...tags] } }
+        { input: { id: node.id, tags: Array.from(tags) } }
       );
 
       console.log(`tagged ${node.handle} -> ${tag}`);

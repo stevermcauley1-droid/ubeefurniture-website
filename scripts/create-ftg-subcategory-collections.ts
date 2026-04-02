@@ -124,7 +124,7 @@ async function main() {
         console.log(`create failed ${d.handle}: ${out.collectionCreate.userErrors.map((e) => e.message).join("; ")}`);
         continue;
       }
-      id = out.collectionCreate.collection?.id || null;
+      id = out.collectionCreate.collection?.id;
       if (!id) continue;
       console.log(`created: ${d.handle}`);
     }

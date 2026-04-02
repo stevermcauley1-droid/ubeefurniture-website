@@ -107,7 +107,7 @@ function classifySubcats(p: ProductNode): string[] {
   if (isSofa && hasAny(all, ["3 seater sofa", "3-seater sofa"])) out.add("sofas-3-seater");
   if (isSofa && hasAny(all, ["corner", "chaise"])) out.add("corner-sofas");
 
-  return [...out].sort();
+  return Array.from(out).sort();
 }
 
 async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -131,12 +131,13 @@ async function main() {
   let seen = 0;
 
   while (true) {
-    const data = await gql<{
+    const data: {
       products: {
         pageInfo: { hasNextPage: boolean; endCursor: string | null };
         edges: Array<{ node: ProductNode }>;
       };
-    }>(
+    } = await gql(
+      
       `query($first: Int!, $after: String) {
         products(first: $first, after: $after, sortKey: ID) {
           pageInfo { hasNextPage endCursor }
@@ -159,9 +160,9 @@ async function main() {
       seen++;
       const subcats = classifySubcats(p).map((s) => `ftg_subcat:${s}`);
       const keep = (p.tags || []).filter((t) => !t.startsWith("ftg_subcat:"));
-      const nextTags = [...new Set([...keep, ...subcats])];
-      const currentNormalized = [...new Set(p.tags || [])].sort().join("|");
-      const nextNormalized = [...new Set(nextTags)].sort().join("|");
+      const nextTags = Array.from(new Set([...keep, ...subcats]));
+      const currentNormalized = Array.from(new Set(p.tags || [])).sort().join("|");
+      const nextNormalized = Array.from(new Set(nextTags)).sort().join("|");
       const same = currentNormalized === nextNormalized;
       if (same) continue;
 

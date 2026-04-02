@@ -76,8 +76,9 @@ async function main() {
     if (!byProduct.has(u.productId)) byProduct.set(u.productId, u.rangeHandle);
   }
 
+  const productPairs = Array.from(byProduct);
   let touched = 0;
-  for (const [productId, rangeHandle] of byProduct.entries()) {
+  for (const [productId, rangeHandle] of productPairs) {
     const q = await gql<{
       product: { id: string; tags: string[] } | null;
     }>(
@@ -89,7 +90,7 @@ async function main() {
     tags.add(`ftg_range:${rangeHandle}`);
     await gql(
       `mutation($input: ProductInput!) { productUpdate(input: $input) { userErrors { message } } }`,
-      { input: { id: productId, tags: [...tags] } }
+      { input: { id: productId, tags: Array.from(tags) } }
     );
     touched++;
     if (touched % 100 === 0) console.log(`tagged ${touched} products...`);
