@@ -13,7 +13,6 @@ const PRIMARY_TABS: Array<{ label: string; href: string; menuKey?: MenuKey }> = 
   { label: 'LIVING', href: '/collections/living-room', menuKey: 'living' },
   { label: 'DINING', href: '/collections/dining', menuKey: 'dining' },
   { label: 'BEDROOM', href: '/collections/bedroom-furniture', menuKey: 'bedroom' },
-  { label: 'PACKAGES', href: '/landlord-solutions/packages' },
   { label: 'KIDS', href: '/collections/kids', menuKey: 'kids' },
   { label: 'OFFICE', href: '/collections/office', menuKey: 'office' },
   { label: 'SOFAS', href: '/collections/sofas', menuKey: 'sofas' },
@@ -122,7 +121,7 @@ const DROPDOWNS: Record<MenuKey, Array<{ label: string; href: string }>> = {
   collections: COLLECTIONS_SUBTABS,
   landlord: [
     { label: 'Download Landlord Catalogue (PDF)', href: '/landlords/catalogue' },
-    { label: 'Landlord Packages', href: '/landlord-solutions/packages' },
+    { label: 'Packages', href: '/landlord-solutions/packages' },
     { label: 'Request a Quote', href: '/landlords#quote' },
     { label: 'Delivery & Assembly', href: '/landlord-solutions/bulk-delivery' },
     { label: 'Aftercare / Repairs', href: '/contact#aftercare' },
@@ -227,21 +226,22 @@ export function PrimaryNav() {
   return (
     <nav className="bg-white border-y border-gray-200" role="navigation" aria-label="Primary navigation">
       <div ref={wrapperRef} className="max-w-7xl mx-auto px-4 relative">
-        <div className="hidden md:flex items-center gap-2 flex-wrap">
+        <ul className="hidden md:flex items-center gap-3 list-none m-0 p-0 flex-nowrap overflow-x-auto [scrollbar-width:thin]">
           {PRIMARY_TABS.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              onMouseEnter={() => setOpenMenu(item.menuKey ?? null)}
-              className="px-2 py-3 text-[11px] font-semibold tracking-wide text-[var(--ubee-black)] hover:text-[var(--ubee-yellow-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--ubee-yellow)] rounded"
-              aria-haspopup={!!item.menuKey}
-              aria-expanded={item.menuKey ? openMenu === item.menuKey : undefined}
-            >
-              {item.label}
-              {item.menuKey && <span className="ml-1 text-[10px]">▼</span>}
-            </Link>
+            <li key={`${item.href}::${item.label}`} className="shrink-0">
+              <Link
+                href={item.href}
+                onMouseEnter={() => setOpenMenu(item.menuKey ?? null)}
+                className="block px-2 py-3 text-[11px] font-semibold tracking-wide whitespace-nowrap text-[var(--ubee-black)] hover:text-[var(--ubee-yellow-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--ubee-yellow)] rounded"
+                aria-haspopup={!!item.menuKey}
+                aria-expanded={item.menuKey ? openMenu === item.menuKey : undefined}
+              >
+                {item.label}
+                {item.menuKey && <span className="ml-1 text-[10px]">▼</span>}
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
 
         {openMenu && (
           <div
@@ -296,7 +296,7 @@ function MobileNav() {
             <Link href="/register" className="block py-1.5" onClick={() => setOpen(false)}>Register</Link>
           </div>
           {PRIMARY_TABS.map((tab) => (
-            <div key={tab.label}>
+            <div key={`${tab.href}::${tab.label}`}>
               {tab.menuKey ? (
                 <>
                   <button
