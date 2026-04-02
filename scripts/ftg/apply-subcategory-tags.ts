@@ -31,11 +31,31 @@ function classifySubcats(p: ProductNode): string[] {
   const isKids = hasAny(all, ["kids", "4kids", "kid "]);
   const isSofa = hasAny(all, ["sofa", "seater", "chaise", "corner sofa", "loveseat"]);
   const isDining = hasAny(all, ["dining", "bar stool", "counter stool"]);
-  const isOffice = hasAny(all, ["desk", "office chair", "gaming desk", "professional office"]);
+  /** Matches Shopify product_type from FTG builder (see build-shopify-products.mjs). */
+  const isOfficeType =
+    String(p.productType || "")
+      .trim()
+      .toLowerCase() === "desks & office";
+  const isOffice =
+    isOfficeType ||
+    hasAny(all, ["gaming desk", "professional office", "desk chair", "office chair"]) ||
+    (hasAny(all, ["desk"]) &&
+      !isKids &&
+      !isDining &&
+      !hasAny(all, ["bar desk", "bedside"]));
   const isBedroom = hasAny(all, ["bed", "wardrobe", "chest of drawers", "bedside", "mattress", "bed slat", "sliding wardrobe"]);
 
-  // Top tabs
-  if (isSofa || hasAny(all, ["coffee table", "tv unit", "bookcase", "sideboard", "wall shelf", "mirror"])) out.add("living-room");
+  // Top tabs — office bookcases / wall units are not living-room (FTG splits Office vs Living)
+  if (
+    isSofa ||
+    hasAny(all, ["coffee table", "tv unit", "sideboard", "mirror"]) ||
+    (!isOfficeType &&
+      (hasAny(all, ["bookcase", "bookshelf", "wall shelf", "floating shelf"]) ||
+        tags.includes("bookcases") ||
+        tags.includes("wall-shelves")))
+  ) {
+    out.add("living-room");
+  }
   if (isDining) out.add("dining");
   if (isBedroom) out.add("bedroom-furniture");
   if (isKids) out.add("kids");
@@ -94,12 +114,32 @@ function classifySubcats(p: ProductNode): string[] {
   if (isKids && hasAny(all, ["cube shelf"])) out.add("kids-cube-shelves");
   if (isKids && hasAny(all, ["toy storage"])) out.add("kids-toy-storage");
 
-  // Office subtabs
-  if (hasAny(all, ["desk"]) && !hasAny(all, ["chair"])) out.add("desks");
+  // Office subtabs (align with FTG Office menu: desks, gaming, chairs, cabinets, bookcases, cubes, walls, professional)
   if (hasAny(all, ["gaming desk"])) out.add("gaming-desks");
+  if (
+    isOffice &&
+    hasAny(all, ["desk"]) &&
+    !hasAny(all, ["gaming desk"]) &&
+    !hasAny(all, ["chair"])
+  ) {
+    out.add("desks");
+  }
   if (hasAny(all, ["desk chair", "office chair"])) out.add("desk-chairs");
-  if (isOffice && hasAny(all, [" cabinet "])) out.add("office-cabinets");
-  if (hasAny(all, ["professional office"])) out.add("professional-office");
+  if (
+    isOffice &&
+    (hasAny(all, [" cabinet "]) || (isOfficeType && hasAny(all, ["cabinet", "mobile cabinet"])))
+  ) {
+    out.add("office-cabinets");
+  }
+  if (hasAny(all, ["professional office"]) || (isOfficeType && hasAny(all, ["prima"]))) {
+    out.add("professional-office");
+  }
+  if (isOfficeType && (hasAny(all, ["bookcase", "bookshelf"]) || tags.includes("bookcases"))) {
+    out.add("bookcases");
+  }
+  if (isOfficeType && (hasAny(all, ["wall shelf", "floating shelf"]) || tags.includes("wall-shelves"))) {
+    out.add("wall-shelves");
+  }
 
   // Sofa subtabs
   if (isSofa) out.add("sofas");

@@ -71,7 +71,14 @@ const TARGETS: TargetCollection[] = [
       { column: "TAG", relation: "EQUALS", condition: "mattress" },
     ],
   },
-  { title: "Office", handle: "office", rules: [{ column: "TAG", relation: "EQUALS", condition: "desks" }] },
+  {
+    title: "Office",
+    handle: "office",
+    rules: [
+      { column: "TAG", relation: "EQUALS", condition: "ftg_subcat:office" },
+      { column: "TAG", relation: "EQUALS", condition: "desks" },
+    ],
+  },
   {
     title: "Kids",
     handle: "kids",
