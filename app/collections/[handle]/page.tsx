@@ -8,6 +8,7 @@ import { CollectionFilters } from './CollectionFilters';
 import { CollectionFiltersMobile } from './CollectionFiltersMobile';
 import { CollectionProducts } from './CollectionProducts';
 import { CategoryCollectionLanding } from './CategoryCollectionLanding';
+import { CollectionDescription } from './CollectionDescription';
 import { getCategoryTabLanding } from '@/app/components/site/categoryTabSubcategories';
 import { BreadcrumbStructuredData, CollectionFAQStructuredData } from '@/app/components/StructuredData';
 
@@ -90,15 +91,16 @@ export default async function CollectionPage({ params, searchParams }: PageProps
       </Link>
 
       {categoryLanding ? (
-        <CategoryCollectionLanding def={categoryLanding} heroProducts={products} />
+        <CategoryCollectionLanding
+          def={categoryLanding}
+          heroProducts={products}
+          pageTitle={collection.title}
+          shopifyDescription={collection.description}
+        />
       ) : (
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-[var(--ubee-black)]">{collection.title}</h1>
-          {collection.description && (
-            <p className="mt-2 text-[var(--ubee-gray)] max-w-3xl">
-              {collection.description}
-            </p>
-          )}
+          {collection.description && <CollectionDescription text={collection.description} />}
           {collection.image && (
             <div className="mt-4 max-w-md">
               <Image

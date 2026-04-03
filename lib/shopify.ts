@@ -335,7 +335,7 @@ async function hasAdminAccess(): Promise<boolean> {
   }
 }
 
-function useAdminFallback(): boolean {
+function shouldUseAdminFallback(): boolean {
   return dataMode() === 'admin' || (!getStorefrontConfig() && !!adminToken());
 }
 
@@ -345,7 +345,7 @@ export async function getProducts(first = 12): Promise<ProductsQueryResult> {
   if (storefrontToken()?.startsWith('shpss_')) {
     throw new ShopifyTokenError(TOKEN_GUIDANCE.wrongType, 'WRONG_TYPE');
   }
-  if (useAdminFallback()) {
+  if (shouldUseAdminFallback()) {
     const data = await adminFetch<{ products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } }>(ADMIN_PRODUCTS, { first });
     return {
       products: {
@@ -488,7 +488,7 @@ export async function getCollections(first = 10): Promise<CollectionsQueryResult
     first,
     hasStorefrontToken: !!storefrontToken(),
     tokenPrefix: storefrontToken()?.substring(0, 6),
-    useAdminFallback: useAdminFallback(),
+    shouldUseAdminFallback: shouldUseAdminFallback(),
     hasStorefrontConfig: !!getStorefrontConfig(),
     domain: domain(),
   });
@@ -531,7 +531,7 @@ export async function getCollections(first = 10): Promise<CollectionsQueryResult
   
   // Use Admin API fallback for collections if we have admin access
   const hasAdmin = await hasAdminAccess();
-  if (useAdminFallback() || hasAdmin || adminToken()) {
+  if (shouldUseAdminFallback() || hasAdmin || adminToken()) {
     console.log('[getCollections] Using Admin API fallback');
     const data = await adminFetch<{ collections: { edges: { node: { id: string; handle: string; title: string; image?: { url: string; altText?: string; width?: number; height?: number } | null; resourcePublicationsV2?: { edges?: Array<{ node: { publication: { name: string } } }> } } }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } }>(ADMIN_COLLECTIONS, { first });
     
@@ -679,7 +679,7 @@ export async function getCollectionByHandle(
   sortKey?: CollectionSortKey,
   reverse?: boolean
 ): Promise<CollectionByHandleResult> {
-  if (useAdminFallback()) {
+  if (shouldUseAdminFallback()) {
     const data = await adminFetch<{ collection: { id: string; handle: string; title: string; descriptionHtml?: string | null; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
     if (!data.collection) return { collection: null };
     return {
@@ -827,7 +827,7 @@ const PRODUCT_BY_HANDLE = `
 `;
 
 export async function getProductByHandle(handle: string): Promise<ProductByHandleResult> {
-  if (useAdminFallback()) {
+  if (shouldUseAdminFallback()) {
     const data = await adminFetch<{ product: Parameters<typeof mapAdminProduct>[0] | null }>(ADMIN_PRODUCT_BY_HANDLE, { handle });
     return { product: data.product ? mapAdminProduct(data.product) : null };
   }

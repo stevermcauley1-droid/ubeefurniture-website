@@ -102,7 +102,6 @@ export type CategoryTabLandingKey =
   | 'sofas';
 
 export type CategoryLandingDef = {
-  title: string;
   intro: string;
   subcategories: readonly { label: string; handle: string }[];
   /** Hide carousel tile when it links to the same collection as this page (e.g. All Sofas on Sofas). */
@@ -111,37 +110,31 @@ export type CategoryLandingDef = {
 
 export const CATEGORY_TAB_LANDINGS: Record<CategoryTabLandingKey, CategoryLandingDef> = {
   office: {
-    title: 'Office',
     intro:
       'A dedicated space at home helps you work and study with less clutter and more comfort—without turning the whole house into an office. From compact desks and supportive chairs to cabinets, bookcases, and shelving, this range is built around pieces that fit real rooms and everyday use.',
     subcategories: OFFICE_SUBCATEGORY_ITEMS,
   },
   'living-room': {
-    title: 'Living Room',
     intro:
       'The living room is where daily life unfolds—quiet mornings, busy evenings, and everything in between. Explore seating, tables, storage, and finishing touches that help the space feel organised, welcoming, and ready for how you actually use it.',
     subcategories: LIVING_SUBCATEGORY_ITEMS,
   },
   dining: {
-    title: 'Dining',
     intro:
       'From quick breakfasts to long dinners with guests, the right dining furniture sets the tone. Tables and chairs, sets, sideboards, and storage pieces work together so mealtimes feel comfortable and clutter stays out of sight.',
     subcategories: DINING_SUBCATEGORY_ITEMS,
   },
   'bedroom-furniture': {
-    title: 'Bedroom',
     intro:
       'A calm bedroom starts with practical storage and the right bed for your space. Wardrobes, chests, bedside pieces, and beds help you keep clothes and essentials sorted so the room feels restful and easy to maintain.',
     subcategories: BEDROOM_SUBCATEGORY_ITEMS,
   },
   kids: {
-    title: 'Kids',
     intro:
       'Children’s rooms need furniture that keeps up with growing routines—sleep, study, play, and storage. Desks, beds, wardrobes, and organisers make it easier to keep toys and clothes under control while the space still feels like theirs.',
     subcategories: KIDS_SUBCATEGORY_ITEMS,
   },
   sofas: {
-    title: 'Sofas',
     intro:
       'Whether you are furnishing a compact flat or a larger lounge, the right sofa anchors the room. Browse sizes and shapes—from two- and three-seaters to corners and lounge chairs—to find seating that fits your layout and lifestyle.',
     subcategories: SOFAS_SUBCATEGORY_ITEMS,

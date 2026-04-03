@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCollectionByHandle } from '@/lib/shopify';
 import type { StorefrontProduct } from '@/lib/types';
 import type { CategoryLandingDef } from '@/app/components/site/categoryTabSubcategories';
+import { CollectionDescription } from './CollectionDescription';
 
 function pickLifestyleImages(products: StorefrontProduct[], max = 3) {
   const out: { url: string; alt: string }[] = [];
@@ -23,9 +24,15 @@ function pickLifestyleImages(products: StorefrontProduct[], max = 3) {
 export async function CategoryCollectionLanding({
   def,
   heroProducts,
+  pageTitle,
+  shopifyDescription,
 }: {
   def: CategoryLandingDef;
   heroProducts: StorefrontProduct[];
+  /** Shopify collection title (matches breadcrumbs and metadata). */
+  pageTitle: string;
+  /** Optional collection description from Shopify (HTML or plain), shown under intro. */
+  shopifyDescription?: string | null;
 }) {
   const tiles =
     def.omitLandingTileHandle != null
@@ -65,7 +72,7 @@ export async function CategoryCollectionLanding({
   );
 
   const lifestyle = pickLifestyleImages(heroProducts, 3);
-  const aria = `${def.title} categories`;
+  const aria = `${pageTitle} categories`;
 
   return (
     <section className="mb-10 space-y-8" aria-label={aria}>
@@ -73,7 +80,7 @@ export async function CategoryCollectionLanding({
         <div className="flex gap-3 md:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
           {previews.map((item) => (
             <Link
-              key={item.href}
+              key={`${item.href}-${item.label}`}
               href={item.href}
               className="snap-start shrink-0 w-[132px] sm:w-[150px] md:w-[168px] group text-center"
             >
@@ -102,11 +109,12 @@ export async function CategoryCollectionLanding({
 
       <header>
         <h1 className="text-3xl md:text-4xl font-bold text-[var(--ubee-black)] tracking-tight">
-          {def.title}
+          {pageTitle}
         </h1>
         <p className="mt-4 text-[var(--ubee-gray)] max-w-3xl text-base md:text-lg leading-relaxed">
           {def.intro}
         </p>
+        {shopifyDescription ? <CollectionDescription text={shopifyDescription} /> : null}
       </header>
 
       {lifestyle.length > 0 ? (

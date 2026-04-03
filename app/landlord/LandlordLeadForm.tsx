@@ -40,7 +40,7 @@ export function LandlordLeadForm() {
       <div style={{ padding: '1rem', background: '#e8f5e9', borderRadius: 6 }}>
         <p style={{ margin: 0, fontWeight: 600, marginBottom: '0.5rem' }}>Thank you!</p>
         <p style={{ margin: 0, fontSize: '0.9375rem' }}>
-          We've received your request and will be in touch shortly with a quote.
+          We have received your request and will be in touch shortly with a quote.
         </p>
       </div>
     );
