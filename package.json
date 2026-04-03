@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "shopify:smoke": "node scripts/shopify-smoke-test.mjs",
+    "shopify:test-connection": "node scripts/test-shopify-connection.mjs",
     "shopify:test": "node scripts/shopify/storefront-test.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",

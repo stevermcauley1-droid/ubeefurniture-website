@@ -52,7 +52,6 @@ export default async function CollectionPage({ params, searchParams }: PageProps
   const option = SORT_OPTIONS.find((o) => o.value === sortParam) ?? SORT_OPTIONS[0];
   let collection: Awaited<ReturnType<typeof getCollectionByHandle>>['collection'];
   try {
-    // Fetch more products to allow client-side filtering
     const result = await getCollectionByHandle(
       handle,
       100,
@@ -60,7 +59,9 @@ export default async function CollectionPage({ params, searchParams }: PageProps
       option.reverse
     );
     collection = result.collection;
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[CollectionPage] getCollectionByHandle failed', { handle, message });
     return (
       <main className="max-w-2xl mx-auto px-4 py-12">
         <Link href="/collections" className="inline-block mb-4 text-[var(--ubee-gray)] hover:text-[var(--ubee-black)]">← All collections</Link>
@@ -68,12 +69,35 @@ export default async function CollectionPage({ params, searchParams }: PageProps
         <p className="text-[var(--ubee-gray)]">
           We could not load this collection. Check that Storefront API is configured in .env.local (see docs/env.local.phase2.template).
         </p>
+        <p className="mt-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 font-medium">
+          NO COLLECTION DATA FROM SHOPIFY (request error). See server console for details.
+        </p>
       </main>
     );
   }
-  if (!collection) notFound();
+
+  if (!collection) {
+    console.warn('[CollectionPage] collection is null', { handle });
+    return (
+      <main className="max-w-2xl mx-auto px-4 py-12">
+        <Link href="/collections" className="inline-block mb-4 text-[var(--ubee-gray)] hover:text-[var(--ubee-black)]">← All collections</Link>
+        <h1 className="text-2xl font-bold mb-4">Collection</h1>
+        <p className="rounded border border-red-300 bg-red-50 px-4 py-3 text-red-900 font-semibold">
+          NO COLLECTION RETURNED FROM SHOPIFY
+        </p>
+        <p className="mt-3 text-[var(--ubee-gray)] text-sm">
+          Handle: <code className="rounded bg-gray-100 px-1">{handle}</code> — confirm this matches the Shopify collection handle and the collection is published to Headless / Online Store.
+        </p>
+      </main>
+    );
+  }
 
   const products = collection.products.edges.map((e) => e.node);
+  console.log('[CollectionPage] Shopify collection loaded', {
+    handle,
+    title: collection.title,
+    productCount: products.length,
+  });
   const categoryLanding = getCategoryTabLanding(handle);
 
   const breadcrumbs = [
@@ -89,6 +113,12 @@ export default async function CollectionPage({ params, searchParams }: PageProps
       <Link href="/collections" className="inline-block mb-4 text-[var(--ubee-gray)] hover:text-[var(--ubee-black)] transition-colors">
         ← All collections
       </Link>
+
+      {products.length === 0 ? (
+        <p className="mb-4 rounded border border-amber-400 bg-amber-50 px-4 py-3 text-amber-950 font-semibold">
+          NO PRODUCTS RETURNED FROM SHOPIFY
+        </p>
+      ) : null}
 
       {categoryLanding ? (
         <CategoryCollectionLanding
