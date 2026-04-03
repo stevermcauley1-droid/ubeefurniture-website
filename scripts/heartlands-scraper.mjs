@@ -8,6 +8,10 @@
  *   node scripts/heartlands-scraper.mjs --category=https://www.heartlandsfurniture.co.uk/product-category/dining/dining-tables/
  *   node scripts/heartlands-scraper.mjs --category=... --max-pages=3 --delay-ms=400
  *   node scripts/heartlands-scraper.mjs --shopify-json --out=data/heartlands/shopify-products.json
+ *
+ * Import to Shopify:
+ *   node scripts/heartlands-import-to-shopify.mjs --dry-run [--file=…]
+ *   node scripts/heartlands-import-to-shopify.mjs --apply --publish [--limit=N]
  */
 
 import axios from "axios";
