@@ -7,6 +7,7 @@ import { CollectionSort } from './CollectionSort';
 import { CollectionFilters } from './CollectionFilters';
 import { CollectionFiltersMobile } from './CollectionFiltersMobile';
 import { CollectionProducts } from './CollectionProducts';
+import { OfficeCollectionLanding } from './OfficeCollectionLanding';
 import { BreadcrumbStructuredData, CollectionFAQStructuredData } from '@/app/components/StructuredData';
 
 const baseUrl =
@@ -71,6 +72,7 @@ export default async function CollectionPage({ params, searchParams }: PageProps
   if (!collection) notFound();
 
   const products = collection.products.edges.map((e) => e.node);
+  const isOfficeLanding = handle === 'office';
 
   const breadcrumbs = [
     { name: 'Home', url: baseUrl },
@@ -86,28 +88,31 @@ export default async function CollectionPage({ params, searchParams }: PageProps
         ← All collections
       </Link>
 
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-[var(--ubee-black)]">{collection.title}</h1>
-        {collection.description && (
-          <p className="mt-2 text-[var(--ubee-gray)] max-w-3xl">
-            {collection.description}
-          </p>
-        )}
-        {collection.image && (
-          <div className="mt-4 max-w-md">
-            <Image
-              src={collection.image.url}
-              alt={collection.image.altText ?? collection.title}
-              width={collection.image.width ?? 400}
-              height={collection.image.height ?? 400}
-              sizes="(max-width: 768px) 100vw, 400px"
-              priority
-              className="w-full rounded-lg"
-            />
-          </div>
-        )}
-      </div>
+      {isOfficeLanding ? (
+        <OfficeCollectionLanding heroProducts={products} />
+      ) : (
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--ubee-black)]">{collection.title}</h1>
+          {collection.description && (
+            <p className="mt-2 text-[var(--ubee-gray)] max-w-3xl">
+              {collection.description}
+            </p>
+          )}
+          {collection.image && (
+            <div className="mt-4 max-w-md">
+              <Image
+                src={collection.image.url}
+                alt={collection.image.altText ?? collection.title}
+                width={collection.image.width ?? 400}
+                height={collection.image.height ?? 400}
+                sizes="(max-width: 768px) 100vw, 400px"
+                priority
+                className="w-full rounded-lg"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mobile filters button */}
       <div className="mb-4 md:hidden">

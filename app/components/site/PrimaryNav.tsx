@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { OFFICE_SUBMENU_LINKS } from './officeSubcategories';
 
 type MenuKey = 'collections' | 'landlord' | 'living' | 'dining' | 'bedroom' | 'kids' | 'office' | 'sofas';
 
@@ -182,16 +183,7 @@ const DROPDOWNS: Record<MenuKey, Array<{ label: string; href: string }>> = {
     { label: 'Kids Cube Shelves', href: '/collections/kids-cube-shelves' },
     { label: 'Kids Toy Storage', href: '/collections/kids-toy-storage' },
   ],
-  office: [
-    { label: 'Desks', href: '/collections/desks' },
-    { label: 'Gaming Desks', href: '/collections/gaming-desks' },
-    { label: 'Desk Chairs', href: '/collections/desk-chairs' },
-    { label: 'Cabinets', href: '/collections/office-cabinets' },
-    { label: 'Bookcases', href: '/collections/bookcases' },
-    { label: 'Cube Shelves', href: '/collections/cube-shelves' },
-    { label: 'Wall Shelves', href: '/collections/wall-shelves' },
-    { label: 'Professional Office', href: '/collections/professional-office' },
-  ],
+  office: OFFICE_SUBMENU_LINKS,
   sofas: [
     { label: 'All Sofas', href: '/collections/sofas' },
     { label: '2 Seater Sofas', href: '/collections/sofas-2-seater' },
