@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useTransition } from 'react';
 import PrintButton from './PrintButton';
 import ProductCard from './ProductCard';
@@ -55,7 +56,14 @@ export default function BrandedCatalogueView({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {logoUrl ? (
-              <img src={logoUrl} alt={`${agencyName} logo`} className="h-14 w-auto rounded" />
+              <Image
+                src={logoUrl}
+                alt={`${agencyName} logo`}
+                width={200}
+                height={56}
+                className="h-14 w-auto rounded"
+                unoptimized
+              />
             ) : (
               <div className="grid h-14 w-14 place-items-center rounded font-bold text-zinc-900" style={{ backgroundColor: accent }}>
                 {agencyName.slice(0, 1)}
