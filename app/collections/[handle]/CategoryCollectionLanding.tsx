@@ -2,13 +2,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCollectionByHandle } from '@/lib/shopify';
 import type { StorefrontProduct } from '@/lib/types';
-import { OFFICE_SUBCATEGORY_ITEMS } from '@/app/components/site/officeSubcategories';
-
-const OFFICE_INTRO =
-  'A dedicated space at home helps you work and study with less clutter and more comfort—without turning the whole house into an office. From compact desks and supportive chairs to cabinets, bookcases, and shelving, this range is built around pieces that fit real rooms and everyday use.';
+import type { CategoryLandingDef } from '@/app/components/site/categoryTabSubcategories';
 
 function pickLifestyleImages(products: StorefrontProduct[], max = 3) {
-  const out: { url: string; alt: string; w: number; h: number }[] = [];
+  const out: { url: string; alt: string }[] = [];
   const seen = new Set<string>();
   for (const p of products) {
     const img = p.featuredImage;
@@ -17,21 +14,26 @@ function pickLifestyleImages(products: StorefrontProduct[], max = 3) {
     out.push({
       url: img.url,
       alt: img.altText ?? p.title,
-      w: img.width || 800,
-      h: img.height || 600,
     });
     if (out.length >= max) break;
   }
   return out;
 }
 
-export async function OfficeCollectionLanding({
+export async function CategoryCollectionLanding({
+  def,
   heroProducts,
 }: {
+  def: CategoryLandingDef;
   heroProducts: StorefrontProduct[];
 }) {
+  const tiles =
+    def.omitLandingTileHandle != null
+      ? def.subcategories.filter((s) => s.handle !== def.omitLandingTileHandle)
+      : def.subcategories;
+
   const previews = await Promise.all(
-    OFFICE_SUBCATEGORY_ITEMS.map(async ({ label, handle }) => {
+    tiles.map(async ({ label, handle }) => {
       const href = `/collections/${handle}`;
       try {
         const { collection } = await getCollectionByHandle(handle, 1);
@@ -63,9 +65,10 @@ export async function OfficeCollectionLanding({
   );
 
   const lifestyle = pickLifestyleImages(heroProducts, 3);
+  const aria = `${def.title} categories`;
 
   return (
-    <section className="mb-10 space-y-8" aria-label="Office categories">
+    <section className="mb-10 space-y-8" aria-label={aria}>
       <div className="relative -mx-1">
         <div className="flex gap-3 md:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
           {previews.map((item) => (
@@ -99,10 +102,10 @@ export async function OfficeCollectionLanding({
 
       <header>
         <h1 className="text-3xl md:text-4xl font-bold text-[var(--ubee-black)] tracking-tight">
-          Office
+          {def.title}
         </h1>
         <p className="mt-4 text-[var(--ubee-gray)] max-w-3xl text-base md:text-lg leading-relaxed">
-          {OFFICE_INTRO}
+          {def.intro}
         </p>
       </header>
 

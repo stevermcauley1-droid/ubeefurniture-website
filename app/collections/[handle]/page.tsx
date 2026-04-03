@@ -7,7 +7,8 @@ import { CollectionSort } from './CollectionSort';
 import { CollectionFilters } from './CollectionFilters';
 import { CollectionFiltersMobile } from './CollectionFiltersMobile';
 import { CollectionProducts } from './CollectionProducts';
-import { OfficeCollectionLanding } from './OfficeCollectionLanding';
+import { CategoryCollectionLanding } from './CategoryCollectionLanding';
+import { getCategoryTabLanding } from '@/app/components/site/categoryTabSubcategories';
 import { BreadcrumbStructuredData, CollectionFAQStructuredData } from '@/app/components/StructuredData';
 
 const baseUrl =
@@ -72,7 +73,7 @@ export default async function CollectionPage({ params, searchParams }: PageProps
   if (!collection) notFound();
 
   const products = collection.products.edges.map((e) => e.node);
-  const isOfficeLanding = handle === 'office';
+  const categoryLanding = getCategoryTabLanding(handle);
 
   const breadcrumbs = [
     { name: 'Home', url: baseUrl },
@@ -88,8 +89,8 @@ export default async function CollectionPage({ params, searchParams }: PageProps
         ← All collections
       </Link>
 
-      {isOfficeLanding ? (
-        <OfficeCollectionLanding heroProducts={products} />
+      {categoryLanding ? (
+        <CategoryCollectionLanding def={categoryLanding} heroProducts={products} />
       ) : (
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-[var(--ubee-black)]">{collection.title}</h1>

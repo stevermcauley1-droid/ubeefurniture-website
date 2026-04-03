@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { OFFICE_SUBMENU_LINKS } from './officeSubcategories';
+import {
+  BEDROOM_SUBMENU_LINKS,
+  DINING_SUBMENU_LINKS,
+  KIDS_SUBMENU_LINKS,
+  LIVING_SUBMENU_LINKS,
+  OFFICE_SUBMENU_LINKS,
+  SOFAS_SUBMENU_LINKS,
+} from './categoryTabSubcategories';
 
 type MenuKey = 'collections' | 'landlord' | 'living' | 'dining' | 'bedroom' | 'kids' | 'office' | 'sofas';
 
@@ -127,70 +134,12 @@ const DROPDOWNS: Record<MenuKey, Array<{ label: string; href: string }>> = {
     { label: 'Delivery & Assembly', href: '/landlord-solutions/bulk-delivery' },
     { label: 'Aftercare / Repairs', href: '/contact#aftercare' },
   ],
-  living: [
-    { label: 'Living Room Sets', href: '/collections/living-room-sets' },
-    { label: 'Sideboards', href: '/collections/living-sideboards' },
-    { label: 'Cabinets', href: '/collections/living-cabinets' },
-    { label: 'TV Units', href: '/collections/tv-units' },
-    { label: 'Lounge Chairs', href: '/collections/lounge-chairs' },
-    { label: 'Console Tables', href: '/collections/console-tables' },
-    { label: 'Coffee Tables', href: '/collections/coffee-tables' },
-    { label: 'Side Tables', href: '/collections/side-tables' },
-    { label: 'Nest of Tables', href: '/collections/nest-of-tables' },
-    { label: 'Cube Shelves', href: '/collections/cube-shelves' },
-    { label: 'Bookcases', href: '/collections/bookcases' },
-    { label: 'Mirrors', href: '/collections/mirrors' },
-    { label: 'Coat Racks', href: '/collections/coat-racks' },
-    { label: 'Shoe Storage Cabinets', href: '/collections/shoe-storage-cabinets' },
-    { label: 'Wall Shelves', href: '/collections/wall-shelves' },
-    { label: 'Cabinet Lights', href: '/collections/cabinet-lights' },
-    { label: 'Accessories', href: '/collections/accessories' },
-  ],
-  dining: [
-    { label: 'Dining Sets', href: '/collections/dining-sets' },
-    { label: 'Dining Tables', href: '/collections/dining-tables' },
-    { label: 'Dining Chairs', href: '/collections/dining-chairs' },
-    { label: 'Sideboards', href: '/collections/dining-sideboards' },
-    { label: 'Cabinets', href: '/collections/dining-cabinets' },
-    { label: 'Bar Desks', href: '/collections/bar-desks' },
-    { label: 'Bar and Counter Stools', href: '/collections/bar-counter-stools' },
-    { label: 'Cabinet Lights', href: '/collections/cabinet-lights' },
-  ],
-  bedroom: [
-    { label: 'Bedroom Sets', href: '/collections/bedroom-sets' },
-    { label: 'Bedside Cabinets', href: '/collections/bedside-cabinets' },
-    { label: 'Chest of Drawers', href: '/collections/chest-of-drawers' },
-    { label: 'Console Tables', href: '/collections/console-tables' },
-    { label: 'Wardrobes', href: '/collections/wardrobes' },
-    { label: 'Sliding Wardrobes', href: '/collections/sliding-wardrobes' },
-    { label: 'Beds', href: '/collections/beds' },
-    { label: 'Shoe Storage Cabinets', href: '/collections/shoe-storage-cabinets' },
-    { label: 'Ottoman Storage', href: '/collections/ottoman-storage' },
-    { label: 'Bed Slats', href: '/collections/bed-slats' },
-    { label: 'Cabinet Lights', href: '/collections/cabinet-lights' },
-  ],
-  kids: [
-    { label: 'Kids Room Sets', href: '/collections/kids-room-sets' },
-    { label: 'Kids Beds', href: '/collections/kids-beds' },
-    { label: 'Kids Accessories', href: '/collections/kids-accessories' },
-    { label: 'Kids Wardrobes', href: '/collections/kids-wardrobes' },
-    { label: 'Kids Cabinets', href: '/collections/kids-cabinets' },
-    { label: 'Kids Chest of Drawers', href: '/collections/kids-chest-of-drawers' },
-    { label: 'Kids Desks', href: '/collections/kids-desks' },
-    { label: 'Kids Gaming Desks', href: '/collections/kids-gaming-desks' },
-    { label: 'Kids Wall Shelves', href: '/collections/kids-wall-shelves' },
-    { label: 'Kids Bookcases', href: '/collections/kids-bookcases' },
-    { label: 'Kids Cube Shelves', href: '/collections/kids-cube-shelves' },
-    { label: 'Kids Toy Storage', href: '/collections/kids-toy-storage' },
-  ],
+  living: LIVING_SUBMENU_LINKS,
+  dining: DINING_SUBMENU_LINKS,
+  bedroom: BEDROOM_SUBMENU_LINKS,
+  kids: KIDS_SUBMENU_LINKS,
   office: OFFICE_SUBMENU_LINKS,
-  sofas: [
-    { label: 'All Sofas', href: '/collections/sofas' },
-    { label: '2 Seater Sofas', href: '/collections/sofas-2-seater' },
-    { label: '3 Seater Sofas', href: '/collections/sofas-3-seater' },
-    { label: 'Corner Sofas', href: '/collections/corner-sofas' },
-    { label: 'Lounge Chairs', href: '/collections/lounge-chairs' },
-  ],
+  sofas: SOFAS_SUBMENU_LINKS,
 };
 
 export function PrimaryNav() {
