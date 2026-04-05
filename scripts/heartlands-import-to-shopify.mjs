@@ -3,6 +3,7 @@
  * Import Heartlands-shaped JSON (from heartlands-scraper --shopify-json) into Shopify Admin.
  *
  * Env: SHOPIFY_STORE_DOMAIN, SHOPIFY_ADMIN_ACCESS_TOKEN (or SHOPIFY_ADMIN_API_TOKEN)
+ *   Must be an Admin API token (Settings → Apps → your custom app), not the Storefront API token.
  * Loads .env.local via dotenv.
  *
  * Usage:

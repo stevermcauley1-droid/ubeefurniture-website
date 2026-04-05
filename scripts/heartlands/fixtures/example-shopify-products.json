@@ -1,0 +1,17 @@
+{
+  "products": [
+    {
+      "handle": "acodia-dining-table-clear-glass-black",
+      "title": "Acodia Dining Table Clear Glass & Black (fixture)",
+      "body_html": "<p>Example row for <code>npm run heartlands:import:dry</code>. Replace with output from <code>npm run heartlands:shopify</code> for real imports.</p>",
+      "vendor": "Heartlands",
+      "product_type": "Furniture",
+      "variants": [{ "price": "0.00", "sku": "ACODTAB" }],
+      "images": [
+        {
+          "src": "https://www.heartlandsfurniture.co.uk/wp-content/uploads/2022/08/Acodia-Dining-Set_ajkm45i9.jpg"
+        }
+      ]
+    }
+  ]
+}
