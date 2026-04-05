@@ -8,6 +8,7 @@
  *   node scripts/heartlands-scraper.mjs --category=https://www.heartlandsfurniture.co.uk/product-category/dining/dining-tables/
  *   node scripts/heartlands-scraper.mjs --category=... --max-pages=3 --delay-ms=400
  *   node scripts/heartlands-scraper.mjs --shopify-json --out=data/heartlands/shopify-products.json
+ *     (no --url/--category → crawls dining tables category, up to 10 products)
  *
  * Import to Shopify:
  *   node scripts/heartlands-import-to-shopify.mjs --dry-run [--file=…]
@@ -22,6 +23,12 @@ import path from "path";
 const BASE = "https://www.heartlandsfurniture.co.uk";
 const DEFAULT_PRODUCT =
   "https://www.heartlandsfurniture.co.uk/product/acodia-dining-table-clear-glass-black/";
+
+/** Used when --shopify-json --out=… and no --category / --url (mini catalog for import). */
+const DEFAULT_CATEGORY_FOR_BULK =
+  "https://www.heartlandsfurniture.co.uk/product-category/dining/dining-tables/";
+const DEFAULT_BULK_LIMIT = 10;
+const DEFAULT_BULK_MAX_PAGES = 3;
 
 const UA =
   "Mozilla/5.0 (compatible; UbeeCatalogBot/1.0; +https://ubeefurniture.co.uk)";
@@ -282,14 +289,31 @@ async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function hasExplicitArg(name) {
+  return process.argv.some((a) => a.startsWith(`--${name}=`));
+}
+
 async function main() {
-  const url = arg("url", DEFAULT_PRODUCT);
-  const category = arg("category", "");
-  const maxPages = Number(arg("max-pages", "5"));
-  const delayMs = Number(arg("delay-ms", "400"));
-  const limit = arg("limit", "");
   const outPath = arg("out", "");
   const shopifyJson = hasFlag("shopify-json");
+  const useDefaultBulk =
+    shopifyJson &&
+    outPath &&
+    !hasExplicitArg("category") &&
+    !hasExplicitArg("url");
+
+  const url = arg("url", DEFAULT_PRODUCT);
+  const category = useDefaultBulk
+    ? DEFAULT_CATEGORY_FOR_BULK
+    : arg("category", "");
+  const maxPages = Number(
+    arg("max-pages", useDefaultBulk ? String(DEFAULT_BULK_MAX_PAGES) : "5")
+  );
+  const delayMs = Number(arg("delay-ms", "400"));
+  const limit = arg(
+    "limit",
+    useDefaultBulk ? String(DEFAULT_BULK_LIMIT) : ""
+  );
 
   let records = [];
 

@@ -23,7 +23,7 @@ try {
   /* optional */
 }
 
-const API_VERSION = "2024-01";
+const API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || "2024-10";
 const DEFAULT_FILE = path.join("data", "heartlands", "shopify-products.json");
 
 function arg(name, def) {
@@ -176,24 +176,24 @@ async function updateProduct(domain, token, productId, payload) {
   if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
 }
 
-async function updateVariant(domain, token, variantId, { price, sku }) {
-  const input = { id: variantId };
+async function updateVariant(domain, token, productId, variantId, { price, sku }) {
+  const variant = { id: variantId };
   if (price != null && String(price).trim() !== "") {
-    input.price = String(price).replace(/[^\d.]/g, "") || "0.00";
+    variant.price = String(price).replace(/[^\d.]/g, "") || "0.00";
   }
-  if (sku) input.sku = String(sku);
+  if (sku) variant.inventoryItem = { sku: String(sku) };
   const data = await adminGraphql(
     domain,
     token,
-    `mutation VariantUp($input: ProductVariantInput!) {
-      productVariantUpdate(input: $input) {
-        userErrors { message }
-        productVariant { id }
+    `mutation VariantBulk($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+        userErrors { field message }
       }
     }`,
-    { input }
+    { productId, variants: [variant] }
   );
-  const errs = data?.productVariantUpdate?.userErrors?.filter((e) => e.message) || [];
+  const errs =
+    data?.productVariantsBulkUpdate?.userErrors?.filter((e) => e.message) || [];
   if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
 }
 
@@ -330,9 +330,15 @@ async function main() {
     process.exit(1);
   }
 
-  const list = Array.isArray(parsed.products) ? parsed.products : [];
+  const list = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed.products)
+      ? parsed.products
+      : [];
   if (!list.length) {
-    console.error('No products in file (expected { "products": [ … ] }).');
+    console.error(
+      'No products in file (expected [ … ] or { "products": [ … ] }).'
+    );
     process.exit(1);
   }
 
@@ -415,7 +421,7 @@ async function main() {
         variantId = found.variantId;
         await updateProduct(domain, token, productId, p);
         if (variantId) {
-          await updateVariant(domain, token, variantId, { price, sku });
+          await updateVariant(domain, token, productId, variantId, { price, sku });
         }
         const m = await createMedia(domain, token, productId, images);
         if (doPublish) {
@@ -429,7 +435,7 @@ async function main() {
         productId = cr.productId;
         variantId = cr.variantId;
         if (variantId) {
-          await updateVariant(domain, token, variantId, { price, sku });
+          await updateVariant(domain, token, productId, variantId, { price, sku });
         }
         const m = await createMedia(domain, token, productId, images);
         if (doPublish) {
