@@ -210,20 +210,21 @@ const ADMIN_COLLECTIONS = `
 `;
 
 const ADMIN_COLLECTION_BY_HANDLE = `
-  query Collection($handle: String!, $first: Int!) {
+  query Collection($handle: String!, $first: Int!, $after: String) {
     collection(handle: $handle) {
       id
       handle
       title
       descriptionHtml
       image { url altText width height }
-      products(first: $first) {
+      products(first: $first, after: $after) {
         edges {
           node {
             id
             handle
             title
             description
+            tags
             featuredImage { url altText width height }
             variants(first: 20) {
               edges {
@@ -284,6 +285,7 @@ function mapAdminProduct(adminNode: {
   handle: string;
   title: string;
   description: string;
+  tags?: string[];
   featuredImage?: { url: string; altText?: string; width?: number; height?: number } | null;
   images?: { edges: { node: { url: string; altText?: string; width?: number; height?: number } }[] };
   variants?: { edges: { node: { id: string; title: string; availableForSale: boolean; price: string | { amount: string; currencyCode: string }; selectedOptions?: { name: string; value: string }[] } }[] };
@@ -295,6 +297,7 @@ function mapAdminProduct(adminNode: {
     handle: adminNode.handle,
     title: adminNode.title,
     description: adminNode.description || '',
+    tags: Array.isArray(adminNode.tags) ? adminNode.tags : undefined,
     featuredImage: adminNode.featuredImage ? { url: adminNode.featuredImage.url, altText: adminNode.featuredImage.altText ?? null, width: adminNode.featuredImage.width || 0, height: adminNode.featuredImage.height || 0 } : null,
     images: adminNode.images ? {
       edges: adminNode.images.edges.map((e) => ({
@@ -680,7 +683,7 @@ export async function getCollectionByHandle(
   reverse?: boolean
 ): Promise<CollectionByHandleResult> {
   if (shouldUseAdminFallback()) {
-    const data = await adminFetch<{ collection: { id: string; handle: string; title: string; descriptionHtml?: string | null; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
+    const data = await adminFetch<{ collection: { id: string; handle: string; title: string; descriptionHtml?: string | null; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: null });
     if (!data.collection) return { collection: null };
     return {
       collection: {
@@ -721,7 +724,7 @@ export async function getCollectionByHandle(
           image?: { url: string; altText?: string | null; width?: number; height?: number } | null;
           products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
         } | null;
-      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
+      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: null });
       if (!data.collection) return { collection: null };
       return {
         collection: {
@@ -754,7 +757,7 @@ export async function getCollectionByHandle(
           image?: { url: string; altText?: string | null; width?: number; height?: number } | null;
           products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
         } | null;
-      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts });
+      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: null });
       if (!data.collection) return { collection: null };
       return {
         collection: {

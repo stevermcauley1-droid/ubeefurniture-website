@@ -7,8 +7,9 @@
  * Loads .env.local via dotenv.
  *
  * Usage:
- *   node scripts/heartlands-import-to-shopify.mjs --dry-run [--file=data/heartlands/shopify-products.json] [--limit=10]
- *   node scripts/heartlands-import-to-shopify.mjs --apply [--publish] [--limit=5]
+ *   node scripts/heartlands-import-to-shopify.mjs --dry-run [--file=…] [--limit=N]
+ *   node scripts/heartlands-import-to-shopify.mjs --apply [--publish] [--limit=N]
+ *   Omit --limit or --limit=0 to import every row (JSON deduped by SKU, else handle). Existing Shopify SKUs/handles are updated, not duplicated.
  */
 
 import fs from "fs";
@@ -310,7 +311,11 @@ async function main() {
   const doPublish = process.argv.includes("--publish");
   const filePath = path.resolve(process.cwd(), arg("file", DEFAULT_FILE));
   const limitArg = arg("limit", "");
-  const limit = limitArg ? Math.max(0, parseInt(limitArg, 10)) : 0;
+  const limitParsed = limitArg !== "" ? parseInt(limitArg, 10) : NaN;
+  const limit =
+    limitArg === "" || limitArg === "0" || (Number.isFinite(limitParsed) && limitParsed <= 0)
+      ? 0
+      : Math.max(0, limitParsed);
 
   if (!dryRun && !apply) {
     console.error("Use --dry-run or --apply.");
@@ -342,7 +347,28 @@ async function main() {
     process.exit(1);
   }
 
-  const slice = limit > 0 ? list.slice(0, limit) : list;
+  const seenKeys = new Set();
+  const deduped = [];
+  for (const row of list) {
+    const v0 = row?.variants?.[0];
+    const sku = v0?.sku != null ? String(v0.sku).trim() : "";
+    const handle = row?.handle != null ? String(row.handle).trim() : "";
+    const key = sku ? `sku:${sku.toLowerCase()}` : `h:${handle.toLowerCase()}`;
+    if (!key || key === "h:") {
+      deduped.push(row);
+      continue;
+    }
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    deduped.push(row);
+  }
+  if (deduped.length !== list.length) {
+    console.error(
+      `[heartlands-import] Deduped JSON rows: ${list.length} → ${deduped.length} (by SKU, else handle)`
+    );
+  }
+
+  const slice = limit > 0 ? deduped.slice(0, limit) : deduped;
   const { domain, token } = getConfig();
 
   if (apply && (!domain || !token)) {
