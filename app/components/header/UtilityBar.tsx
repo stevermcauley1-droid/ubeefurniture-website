@@ -5,7 +5,7 @@ import Link from 'next/link';
 export function UtilityBar() {
   const links = [
     { label: 'Estate Agents', href: '/estate-agents' },
-    { label: 'Landlords', href: '/landlords' },
+    { label: 'Landlords', href: '/landlord' },
     { label: 'Trade Login', href: '/trade/login' },
     { label: 'Register', href: '/trade/register' },
   ];

@@ -9,7 +9,12 @@
  * Usage:
  *   node scripts/heartlands-import-to-shopify.mjs --dry-run [--file=…] [--limit=N]
  *   node scripts/heartlands-import-to-shopify.mjs --apply [--publish] [--limit=N]
- *   Omit --limit or --limit=0 to import every row (JSON deduped by SKU, else handle). Existing Shopify SKUs/handles are updated, not duplicated.
+ *   Omit --limit or --limit=0 to import every row (JSON deduped by SKU, else handle). Existing products are matched by handle first, then by exact variant SKU (Admin SKU search can return inexact matches).
+ *
+ * No images in JSON (e.g. some Beehive SKUs): use a temporary public image URL so the product still imports:
+ *   --placeholder-image=https://your-cdn.com/placeholder.jpg
+ *   or env IMPORT_PLACEHOLDER_IMAGE_URL (must be http(s) absolute URL).
+ *   Tag "needs-real-image" is added when the placeholder is used (filter in Admin to replace later).
  */
 
 import fs from "fs";
@@ -67,19 +72,25 @@ async function adminGraphql(domain, token, query, variables = {}) {
   return json.data;
 }
 
+/**
+ * Admin variant search can return non-exact matches (e.g. sku:MDFSKID Bed matching
+ * MDFSKID-BESPOKE Bed). Only accept a variant whose sku equals the requested value.
+ */
 async function findProductBySku(domain, token, sku) {
   if (!sku) return null;
+  const want = String(sku).trim();
   const data = await adminGraphql(
     domain,
     token,
     `query FindBySku($query: String!) {
-      productVariants(first: 1, query: $query) {
+      productVariants(first: 25, query: $query) {
         nodes { id sku product { id handle } }
       }
     }`,
-    { query: `sku:${sku}` }
+    { query: `sku:${want}` }
   );
-  const node = data?.productVariants?.nodes?.[0];
+  const nodes = data?.productVariants?.nodes || [];
+  const node = nodes.find((n) => String(n?.sku || "").trim() === want);
   if (!node) return null;
   return {
     variantId: node.id,
@@ -371,6 +382,25 @@ async function main() {
   const slice = limit > 0 ? deduped.slice(0, limit) : deduped;
   const { domain, token } = getConfig();
 
+  const placeholderImageUrl = (
+    arg("placeholder-image", "") ||
+    process.env.IMPORT_PLACEHOLDER_IMAGE_URL ||
+    ""
+  ).trim();
+  const placeholderOk =
+    placeholderImageUrl.length > 0 && /^https?:\/\//i.test(placeholderImageUrl);
+  if (placeholderImageUrl && !placeholderOk) {
+    console.error(
+      "[heartlands-import] --placeholder-image / IMPORT_PLACEHOLDER_IMAGE_URL must be an absolute http(s) URL."
+    );
+    process.exit(1);
+  }
+  if (placeholderOk) {
+    console.error(
+      `[heartlands-import] Placeholder image enabled (${placeholderImageUrl.slice(0, 64)}…); tag needs-real-image added when used.`
+    );
+  }
+
   if (apply && (!domain || !token)) {
     console.error(
       "Set SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_ACCESS_TOKEN (or SHOPIFY_ADMIN_API_TOKEN) for --apply."
@@ -397,7 +427,12 @@ async function main() {
     const p = normalizePayload(slice[i]);
     const sku = p.variants[0]?.sku || "";
     const price = p.variants[0]?.price || "0.00";
-    const images = p._imageUrls;
+    let images = [...p._imageUrls];
+    let usedPlaceholder = false;
+    if (!images.length && placeholderOk) {
+      images = [placeholderImageUrl];
+      usedPlaceholder = true;
+    }
 
     if (!p.handle || !p.title) {
       console.warn(`[${i + 1}] skip: missing handle or title`);
@@ -405,39 +440,48 @@ async function main() {
       continue;
     }
     if (!images.length) {
-      console.warn(`[${i + 1}] skip ${p.handle}: no image URLs`);
+      console.warn(
+        `[${i + 1}] skip ${p.handle}: no image URLs (optional: --placeholder-image= or IMPORT_PLACEHOLDER_IMAGE_URL)`
+      );
       skipped++;
       continue;
     }
+
+    const writePayload = usedPlaceholder
+      ? {
+          ...p,
+          tags: [...new Set([...(p.tags || []), "needs-real-image"])],
+        }
+      : p;
 
     try {
       if (dryRun) {
         if (!domain || !token) {
           console.log(
-            `[dry-run] ${p.handle} sku=${sku || "(none)"} images=${images.length} (add Admin token to detect create vs update)`
+            `[dry-run] ${p.handle} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""} (add Admin token to detect create vs update)`
           );
           created++;
           continue;
         }
         try {
-          let found = sku ? await findProductBySku(domain, token, sku) : null;
-          if (!found) found = await findProductByHandle(domain, token, p.handle);
+          let found = await findProductByHandle(domain, token, p.handle);
+          if (!found && sku) found = await findProductBySku(domain, token, sku);
           console.log(
-            `[dry-run] ${found ? "update" : "create"} ${p.handle} sku=${sku || "(none)"} images=${images.length}`
+            `[dry-run] ${found ? "update" : "create"} ${p.handle} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""}`
           );
           if (found) updated++;
           else created++;
         } catch (e) {
           console.log(
-            `[dry-run] ${p.handle} sku=${sku || "(none)"} images=${images.length} (lookup: ${e.message})`
+            `[dry-run] ${p.handle} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""} (lookup: ${e.message})`
           );
           created++;
         }
         continue;
       }
 
-      let found = sku ? await findProductBySku(domain, token, sku) : null;
-      if (!found) found = await findProductByHandle(domain, token, p.handle);
+      let found = await findProductByHandle(domain, token, p.handle);
+      if (!found && sku) found = await findProductBySku(domain, token, sku);
 
       let productId;
       let variantId;
@@ -445,7 +489,7 @@ async function main() {
       if (found) {
         productId = found.productId;
         variantId = found.variantId;
-        await updateProduct(domain, token, productId, p);
+        await updateProduct(domain, token, productId, writePayload);
         if (variantId) {
           await updateVariant(domain, token, productId, variantId, { price, sku });
         }
@@ -454,10 +498,12 @@ async function main() {
           await publishProduct(domain, token, productId, publicationIds);
           published++;
         }
-        console.log(`[${i + 1}/${slice.length}] updated ${p.handle} media_ok=${m.ok} fail=${m.fail}`);
+        console.log(
+          `[${i + 1}/${slice.length}] updated ${p.handle} media_ok=${m.ok} fail=${m.fail}${usedPlaceholder ? " placeholder" : ""}`
+        );
         updated++;
       } else {
-        const cr = await createProduct(domain, token, p);
+        const cr = await createProduct(domain, token, writePayload);
         productId = cr.productId;
         variantId = cr.variantId;
         if (variantId) {
@@ -468,7 +514,9 @@ async function main() {
           await publishProduct(domain, token, productId, publicationIds);
           published++;
         }
-        console.log(`[${i + 1}/${slice.length}] created ${p.handle} media_ok=${m.ok} fail=${m.fail}`);
+        console.log(
+          `[${i + 1}/${slice.length}] created ${p.handle} media_ok=${m.ok} fail=${m.fail}${usedPlaceholder ? " placeholder" : ""}`
+        );
         created++;
       }
       if ((i + 1) % 5 === 0) await sleep(400);

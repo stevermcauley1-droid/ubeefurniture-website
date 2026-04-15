@@ -38,6 +38,7 @@ export function CollectionFilters({ handle, products, onMobileClose }: Collectio
   const updateParams = useCallback(
     (updates: Record<string, string>) => {
       const next = new URLSearchParams(searchParams.toString());
+      next.delete('after');
       Object.entries(updates).forEach(([key, value]) => {
         if (!value || value === 'all' || value === '') {
           next.delete(key);

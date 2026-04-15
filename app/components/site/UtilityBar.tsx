@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 const UTILITY_LINKS = [
   { label: 'Estate Agents', href: '/estate-agents' },
-  { label: 'Landlords', href: '/landlords' },
+  { label: 'Landlords', href: '/landlord' },
   { label: 'Social Housing', href: '/social-housing' },
   { label: 'Login', href: '/login' },
   { label: 'Register', href: '/register' },

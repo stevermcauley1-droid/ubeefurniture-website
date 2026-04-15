@@ -615,7 +615,7 @@ export async function searchProducts(query: string, first = 24): Promise<Product
 export type CollectionSortKey = 'PRICE' | 'CREATED' | 'BEST_SELLING' | 'TITLE' | 'MANUAL' | 'COLLECTION_DEFAULT';
 
 const COLLECTION_BY_HANDLE = `
-  query CollectionByHandle($handle: String!, $firstProducts: Int!, $sortKey: ProductCollectionSortKeys, $reverse: Boolean) {
+  query CollectionByHandle($handle: String!, $firstProducts: Int!, $after: String, $sortKey: ProductCollectionSortKeys, $reverse: Boolean) {
     collection(handle: $handle) {
       id
       handle
@@ -627,13 +627,14 @@ const COLLECTION_BY_HANDLE = `
         width
         height
       }
-      products(first: $firstProducts, sortKey: $sortKey, reverse: $reverse) {
+      products(first: $firstProducts, after: $after, sortKey: $sortKey, reverse: $reverse) {
         edges {
           node {
             id
             handle
             title
             description
+            tags
             featuredImage {
               url
               altText
@@ -680,10 +681,12 @@ export async function getCollectionByHandle(
   handle: string,
   firstProducts = 24,
   sortKey?: CollectionSortKey,
-  reverse?: boolean
+  reverse?: boolean,
+  after?: string | null
 ): Promise<CollectionByHandleResult> {
+  const cursor = after?.trim() || null;
   if (shouldUseAdminFallback()) {
-    const data = await adminFetch<{ collection: { id: string; handle: string; title: string; descriptionHtml?: string | null; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: null });
+    const data = await adminFetch<{ collection: { id: string; handle: string; title: string; descriptionHtml?: string | null; image?: { url: string; altText?: string; width?: number; height?: number } | null; products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: cursor });
     if (!data.collection) return { collection: null };
     return {
       collection: {
@@ -706,6 +709,7 @@ export async function getCollectionByHandle(
     const storefrontResult = await storefrontFetch<CollectionByHandleResult>(COLLECTION_BY_HANDLE, {
       handle,
       firstProducts,
+      after: cursor,
       sortKey: sortKey ?? 'COLLECTION_DEFAULT',
       reverse: reverse ?? false,
     });
@@ -724,7 +728,7 @@ export async function getCollectionByHandle(
           image?: { url: string; altText?: string | null; width?: number; height?: number } | null;
           products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
         } | null;
-      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: null });
+      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: cursor });
       if (!data.collection) return { collection: null };
       return {
         collection: {
@@ -757,7 +761,7 @@ export async function getCollectionByHandle(
           image?: { url: string; altText?: string | null; width?: number; height?: number } | null;
           products: { edges: { node: unknown }[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } };
         } | null;
-      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: null });
+      }>(ADMIN_COLLECTION_BY_HANDLE, { handle, first: firstProducts, after: cursor });
       if (!data.collection) return { collection: null };
       return {
         collection: {

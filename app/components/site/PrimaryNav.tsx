@@ -17,7 +17,7 @@ const PRIMARY_TABS: Array<{ label: string; href: string; menuKey?: MenuKey }> = 
   { label: 'NEW IN', href: '/collections' },
   { label: 'ON SALE AND END OF LINE', href: '/sale' },
   { label: 'COLLECTIONS', href: '/collections', menuKey: 'collections' },
-  { label: 'LANDLORD HUB', href: '/landlords', menuKey: 'landlord' },
+  { label: 'LANDLORD HUB', href: '/landlord', menuKey: 'landlord' },
   { label: 'LIVING', href: '/collections/living-room', menuKey: 'living' },
   { label: 'DINING', href: '/collections/dining', menuKey: 'dining' },
   { label: 'BEDROOM', href: '/collections/bedroom-furniture', menuKey: 'bedroom' },
@@ -130,7 +130,7 @@ const DROPDOWNS: Record<MenuKey, Array<{ label: string; href: string }>> = {
   landlord: [
     { label: 'Download Landlord Catalogue (PDF)', href: '/landlords/catalogue' },
     { label: 'Packages', href: '/landlord-solutions/packages' },
-    { label: 'Request a Quote', href: '/landlords#quote' },
+    { label: 'Request a Quote', href: '/landlord#quote' },
     { label: 'Delivery & Assembly', href: '/landlord-solutions/bulk-delivery' },
     { label: 'Aftercare / Repairs', href: '/contact#aftercare' },
   ],
@@ -231,7 +231,7 @@ function MobileNav() {
         <div className="border-t border-gray-200 bg-white">
           <div className="px-4 py-2 border-b border-gray-100 text-sm text-gray-600">
             <Link href="/estate-agents" className="block py-1.5" onClick={() => setOpen(false)}>Estate Agents</Link>
-            <Link href="/landlords" className="block py-1.5" onClick={() => setOpen(false)}>Landlords</Link>
+            <Link href="/landlord" className="block py-1.5" onClick={() => setOpen(false)}>Landlords</Link>
             <Link href="/social-housing" className="block py-1.5" onClick={() => setOpen(false)}>Social Housing</Link>
             <Link href="/login" className="block py-1.5" onClick={() => setOpen(false)}>Login</Link>
             <Link href="/register" className="block py-1.5" onClick={() => setOpen(false)}>Register</Link>

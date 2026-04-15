@@ -107,7 +107,7 @@ export function MegaMenu({ variant, isOpen, onClose, anchorRef }: MegaMenuProps)
           )}
           {variant === 'landlord' && (
             <Link
-              href="/landlords"
+              href="/landlord"
               className="font-semibold text-[var(--ubee-black)] hover:text-[var(--ubee-yellow-hover)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--ubee-yellow)] rounded"
               onClick={onClose}
             >

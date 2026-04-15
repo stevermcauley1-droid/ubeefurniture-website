@@ -24,7 +24,7 @@ async function verifyCollections() {
   console.log("=== Collections Verification ===\n");
 
   try {
-    const result = await getCollections(50);
+    const result = await getCollections(250);
     const allCollections = result.collections.edges.map((e) => e.node);
     const filtered = allCollections.filter((c) => c.handle !== "frontpage");
 
@@ -37,13 +37,21 @@ async function verifyCollections() {
     });
 
     console.log("\nRequired collections:");
-    const foundHandles = filtered.map((c) => c.title.toLowerCase());
     const missing: string[] = [];
 
     REQUIRED_COLLECTIONS.forEach((req) => {
-      const found = foundHandles.some(
-        (h) => h === req.toLowerCase() || h.includes(req.toLowerCase())
-      );
+      const reqLower = req.toLowerCase();
+      const reqHandleHint = reqLower.replace(/\s+/g, "-");
+      const found = filtered.some((c) => {
+        const t = c.title.toLowerCase();
+        const h = c.handle.toLowerCase();
+        return (
+          t === reqLower ||
+          t.includes(reqLower) ||
+          h === reqHandleHint ||
+          h.startsWith(`${reqHandleHint}-`)
+        );
+      });
       if (found) {
         console.log(`  ✅ ${req}`);
       } else {

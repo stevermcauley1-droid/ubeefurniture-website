@@ -25,8 +25,8 @@ export interface LandlordHubItem {
 
 /** Landlord Hub mega menu: 5 items max, conversion-driven. Download Catalogue is the main CTA. */
 export const LANDLORD_HUB_ITEMS: LandlordHubItem[] = [
-  { label: 'Packages', href: '/landlord-solutions/packages' },
-  { label: 'Request a Quote', href: '/landlords#quote' },
+  { label: 'Packages', href: '/landlord' },
+  { label: 'Request a Quote', href: '/landlord#quote' },
   { label: 'Delivery & Assembly', href: '/landlord-solutions/bulk-delivery' },
   { label: 'Aftercare / Repairs', href: '/contact#aftercare' },
 ];

@@ -64,11 +64,11 @@ export function LandlordTabs() {
 
         {tab === 'services' && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Link href="/landlord-solutions/packages" className="rounded-lg border border-gray-200 p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+            <Link href="/landlord" className="rounded-lg border border-gray-200 p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors">
               <p className="font-semibold text-[var(--ubee-black)] text-sm">Landlord Packages</p>
               <p className="text-xs text-[var(--ubee-gray)] mt-1">Ready-made furnishing bundles</p>
             </Link>
-            <Link href="/landlords#quote" className="rounded-lg border border-gray-200 p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+            <Link href="/landlord#quote" className="rounded-lg border border-gray-200 p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors">
               <p className="font-semibold text-[var(--ubee-black)] text-sm">Request a Quote</p>
               <p className="text-xs text-[var(--ubee-gray)] mt-1">Fast turnaround for projects</p>
             </Link>

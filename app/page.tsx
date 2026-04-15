@@ -65,7 +65,7 @@ export default async function HomePage() {
         </div>
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 w-full max-w-[400px] px-4">
           <TrackQuoteClick
-            href="/landlords#quote"
+            href="/landlord#quote"
             className="block w-full py-3.5 px-6 rounded-md font-bold text-center bg-[var(--ubee-yellow)] hover:bg-[var(--ubee-yellow-hover)] text-[var(--ubee-black)] transition-colors"
           >
             Get a Fast Furnishing Quote

@@ -19,6 +19,7 @@ export function CollectionSort({ handle, currentSort, options }: CollectionSortP
 
   const buildUrl = (sortValue: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete('after');
     if (sortValue === 'default') {
       params.delete('sort');
     } else {

@@ -7,6 +7,7 @@ import { CollectionSort } from './CollectionSort';
 import { CollectionFilters } from './CollectionFilters';
 import { CollectionFiltersMobile } from './CollectionFiltersMobile';
 import { CollectionProducts } from './CollectionProducts';
+import { CollectionPagination, type CollectionQueryState } from './CollectionPagination';
 import { CategoryCollectionLanding } from './CategoryCollectionLanding';
 import { CollectionDescription } from './CollectionDescription';
 import { getCategoryTabLanding } from '@/app/components/site/categoryTabSubcategories';
@@ -16,9 +17,18 @@ const baseUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   'http://localhost:3000';
 
+const COLLECTION_PAGE_SIZE = 48;
+
 interface PageProps {
   params: Promise<{ handle: string }>;
-  searchParams: Promise<{ sort?: string; minPrice?: string; maxPrice?: string; availability?: string; tag?: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    availability?: string;
+    tag?: string;
+    after?: string;
+  }>;
 }
 
 const SORT_OPTIONS: { value: string; label: string; sortKey: CollectionSortKey; reverse: boolean }[] = [
@@ -46,17 +56,28 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function CollectionPage({ params, searchParams }: PageProps) {
   const { handle } = await params;
-  const { sort: sortParam } = await searchParams;
+  const sp = await searchParams;
+  const { sort: sortParam, after: afterCursor } = sp;
   if (!handle || typeof handle !== 'string') notFound();
 
   const option = SORT_OPTIONS.find((o) => o.value === sortParam) ?? SORT_OPTIONS[0];
+  const queryState: CollectionQueryState = {
+    sort: sortParam && sortParam !== 'default' ? sortParam : undefined,
+    minPrice: sp.minPrice,
+    maxPrice: sp.maxPrice,
+    availability: sp.availability && sp.availability !== 'all' ? sp.availability : undefined,
+    tag: sp.tag,
+    after: afterCursor,
+  };
+
   let collection: Awaited<ReturnType<typeof getCollectionByHandle>>['collection'];
   try {
     const result = await getCollectionByHandle(
       handle,
-      100,
+      COLLECTION_PAGE_SIZE,
       option.sortKey,
-      option.reverse
+      option.reverse,
+      afterCursor ?? null
     );
     collection = result.collection;
   } catch (err) {
@@ -93,10 +114,12 @@ export default async function CollectionPage({ params, searchParams }: PageProps
   }
 
   const products = collection.products.edges.map((e) => e.node);
+  const pageInfo = collection.products.pageInfo;
   console.log('[CollectionPage] Shopify collection loaded', {
     handle,
     title: collection.title,
     productCount: products.length,
+    hasNextPage: pageInfo.hasNextPage,
   });
   const categoryLanding = getCategoryTabLanding(handle);
 
@@ -167,6 +190,12 @@ export default async function CollectionPage({ params, searchParams }: PageProps
             <CollectionSort handle={handle} currentSort={option.value} options={SORT_OPTIONS} />
           </div>
           <CollectionProducts products={products} handle={handle} />
+          <CollectionPagination
+            handle={handle}
+            query={queryState}
+            hasNextPage={pageInfo.hasNextPage}
+            endCursor={pageInfo.endCursor}
+          />
         </div>
       </div>
 

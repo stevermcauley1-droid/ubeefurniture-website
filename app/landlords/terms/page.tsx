@@ -33,7 +33,7 @@ export default function TermsPage() {
         </Link>
       </div>
       <p className="mt-8 text-sm text-zinc-500">
-        <Link href="/landlords" className="hover:underline">Landlord Hub</Link>
+        <Link href="/landlord" className="hover:underline">Landlord Hub</Link>
       </p>
     </main>
   );
