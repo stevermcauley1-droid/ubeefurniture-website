@@ -9,7 +9,9 @@
  * Usage:
  *   node scripts/heartlands-import-to-shopify.mjs --dry-run [--file=…] [--limit=N]
  *   node scripts/heartlands-import-to-shopify.mjs --apply [--publish] [--limit=N]
- *   Omit --limit or --limit=0 to import every row (JSON deduped by SKU, else handle). Existing products are matched by handle first, then by exact variant SKU (Admin SKU search can return inexact matches).
+ *   Omit --limit or --limit=0 to import every row (JSON deduped by handle when present, else first variant SKU). Existing products are matched by handle first, then by exact variant SKU (Admin SKU search can return inexact matches).
+ *
+ * Multi-variant rows: each variant may include `options` (e.g. { "Size": "3ft Bed" }). Create uses productOptions + productVariantsBulkCreate; update adjusts prices for matching SKUs and creates missing size variants (sets product options when the product still has a single default variant).
  *
  * No images in JSON (e.g. some Beehive SKUs): use a temporary public image URL so the product still imports:
  *   --placeholder-image=https://your-cdn.com/placeholder.jpg
@@ -127,6 +129,18 @@ async function createProduct(domain, token, payload) {
   const tags = Array.isArray(payload.tags) && payload.tags.length
     ? payload.tags
     : ["heartlands", "supplier-heartlands"];
+  const product = {
+    title: payload.title,
+    descriptionHtml: payload.body_html || "<p></p>",
+    vendor: payload.vendor || "Heartlands",
+    productType: payload.product_type || "Furniture",
+    handle: payload.handle,
+    tags,
+    status: "ACTIVE",
+  };
+  if (payload.productOptions?.length) {
+    product.productOptions = payload.productOptions;
+  }
   const data = await adminGraphql(
     domain,
     token,
@@ -137,25 +151,17 @@ async function createProduct(domain, token, payload) {
       }
     }`,
     {
-      product: {
-        title: payload.title,
-        descriptionHtml: payload.body_html || "<p></p>",
-        vendor: payload.vendor || "Heartlands",
-        productType: payload.product_type || "Furniture",
-        handle: payload.handle,
-        tags,
-        status: "ACTIVE",
-      },
+      product,
     }
   );
   const out = data?.productCreate;
   const errs = out?.userErrors?.filter((e) => e.message) || [];
   if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
-  const product = out?.product;
-  if (!product?.id) throw new Error("productCreate returned no product id");
+  const createdProduct = out?.product;
+  if (!createdProduct?.id) throw new Error("productCreate returned no product id");
   return {
-    productId: product.id,
-    variantId: product.variants?.nodes?.[0]?.id,
+    productId: createdProduct.id,
+    variantId: createdProduct.variants?.nodes?.[0]?.id,
   };
 }
 
@@ -207,6 +213,206 @@ async function updateVariant(domain, token, productId, variantId, { price, sku }
   const errs =
     data?.productVariantsBulkUpdate?.userErrors?.filter((e) => e.message) || [];
   if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
+}
+
+function normalizeVariantOptions(v) {
+  if (v.options && typeof v.options === "object" && !Array.isArray(v.options)) {
+    const out = {};
+    for (const [k, val] of Object.entries(v.options)) {
+      if (k != null && val != null && String(k).trim() && String(val).trim()) {
+        out[String(k).trim()] = String(val).trim();
+      }
+    }
+    return Object.keys(out).length ? out : null;
+  }
+  if (v.option1 != null && String(v.option1).trim()) {
+    return { Size: String(v.option1).trim() };
+  }
+  return null;
+}
+
+function buildProductOptionsFromVariants(variants) {
+  const byName = new Map();
+  for (const v of variants) {
+    if (!v.options) continue;
+    for (const [name, value] of Object.entries(v.options)) {
+      if (!byName.has(name)) byName.set(name, new Set());
+      byName.get(name).add(value);
+    }
+  }
+  if (!byName.size) return null;
+  const ORDER = ["Size", "Colour", "Color", "Material"];
+  const keys = [...byName.keys()].sort((a, b) => {
+    const ia = ORDER.indexOf(a);
+    const ib = ORDER.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib) || a.localeCompare(b);
+  });
+  return keys.map((name) => ({
+    name,
+    values: [...byName.get(name)].sort((x, y) => x.localeCompare(y)).map((n) => ({ name: n })),
+  }));
+}
+
+function usesVariantMatrixFlow(p) {
+  if (!p?.variants?.length) return false;
+  if (p.variants.length > 1) return true;
+  if (p.productOptions?.length) return true;
+  return false;
+}
+
+function variantToBulkCreateInput(v) {
+  const priceNum = Number(String(v.price).replace(/[^\d.]/g, "")) || 0;
+  const out = {
+    price: priceNum,
+    optionValues: v.options
+      ? Object.entries(v.options).map(([optionName, name]) => ({
+          optionName,
+          name: String(name),
+        }))
+      : [],
+  };
+  if (v.sku) out.inventoryItem = { sku: String(v.sku) };
+  return out;
+}
+
+async function productVariantsBulkCreateSafe(domain, token, productId, variants, strategy) {
+  const data = await adminGraphql(
+    domain,
+    token,
+    `mutation Pvc($productId: ID!, $variants: [ProductVariantsBulkInput!]!, $strategy: ProductVariantsBulkCreateStrategy!) {
+      productVariantsBulkCreate(productId: $productId, variants: $variants, strategy: $strategy) {
+        userErrors { field message }
+        productVariants { id sku }
+      }
+    }`,
+    { productId, variants, strategy }
+  );
+  const errs =
+    data?.productVariantsBulkCreate?.userErrors?.filter((e) => e.message) || [];
+  if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
+}
+
+async function syncVariantsAfterSave(domain, token, productId, p, isNewProduct) {
+  if (!usesVariantMatrixFlow(p)) return;
+  for (const v of p.variants) {
+    if (p.productOptions?.length && (!v.options || !Object.keys(v.options).length)) {
+      throw new Error(`Variant missing options for handle=${p.handle}`);
+    }
+  }
+  const bulkVariants = p.variants.map(variantToBulkCreateInput);
+  if (isNewProduct) {
+    await productVariantsBulkCreateSafe(
+      domain,
+      token,
+      productId,
+      bulkVariants,
+      "REMOVE_STANDALONE_VARIANT"
+    );
+    return;
+  }
+
+  let pdata = await adminGraphql(
+    domain,
+    token,
+    `query Q($id: ID!) {
+      product(id: $id) {
+        options { id name }
+        variants(first: 100) {
+          nodes { id sku }
+        }
+      }
+    }`,
+    { id: productId }
+  );
+  let nodes = pdata?.product?.variants?.nodes || [];
+  let shopifyOptions = pdata?.product?.options || [];
+
+  const needsOptionNames = new Set((p.productOptions || []).map((o) => o.name));
+  let hasAllOptions = [...needsOptionNames].every((name) =>
+    shopifyOptions.some((o) => o.name === name)
+  );
+
+  if (!hasAllOptions && p.productOptions?.length && nodes.length <= 1) {
+    const data = await adminGraphql(
+      domain,
+      token,
+      `mutation Opt($input: ProductInput!) {
+        productUpdate(input: $input) {
+          userErrors { field message }
+          product { id }
+        }
+      }`,
+      {
+        input: {
+          id: productId,
+          productOptions: p.productOptions,
+        },
+      }
+    );
+    const errs = data?.productUpdate?.userErrors?.filter((e) => e.message) || [];
+    if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
+    await sleep(400);
+    pdata = await adminGraphql(
+      domain,
+      token,
+      `query Q2($id: ID!) {
+        product(id: $id) {
+          options { id name }
+          variants(first: 100) {
+            nodes { id sku }
+          }
+        }
+      }`,
+      { id: productId }
+    );
+    nodes = pdata?.product?.variants?.nodes || [];
+    shopifyOptions = pdata?.product?.options || [];
+    hasAllOptions = [...needsOptionNames].every((name) =>
+      shopifyOptions.some((o) => o.name === name)
+    );
+  }
+
+  const bySku = new Map(nodes.map((n) => [String(n.sku || "").trim(), n]));
+
+  const toUpdate = [];
+  const toCreate = [];
+  for (const v of p.variants) {
+    const sku = String(v.sku || "").trim();
+    const existing = sku ? bySku.get(sku) : null;
+    if (existing) {
+      toUpdate.push({ id: existing.id, price: v.price, sku });
+    } else {
+      toCreate.push(v);
+    }
+  }
+
+  const CHUNK = 25;
+  for (let i = 0; i < toUpdate.length; i += CHUNK) {
+    const chunk = toUpdate.slice(i, i + CHUNK).map((u) => ({
+      id: u.id,
+      price: String(u.price).replace(/[^\d.]/g, "") || "0.00",
+      ...(u.sku ? { inventoryItem: { sku: u.sku } } : {}),
+    }));
+    if (!chunk.length) continue;
+    const data = await adminGraphql(
+      domain,
+      token,
+      `mutation B($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+        productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+          userErrors { field message }
+        }
+      }`,
+      { productId, variants: chunk }
+    );
+    const errs =
+      data?.productVariantsBulkUpdate?.userErrors?.filter((e) => e.message) || [];
+    if (errs.length) throw new Error(errs.map((e) => e.message).join("; "));
+  }
+
+  const createBulk = toCreate.map(variantToBulkCreateInput);
+  if (createBulk.length) {
+    await productVariantsBulkCreateSafe(domain, token, productId, createBulk, "DEFAULT");
+  }
 }
 
 async function createMedia(domain, token, productId, imageUrls) {
@@ -297,8 +503,15 @@ async function publishProduct(domain, token, productId, publicationIds) {
 }
 
 function normalizePayload(raw) {
-  const v0 = raw.variants?.[0] || {};
   const imageUrls = (raw.images || []).map((i) => (typeof i === "string" ? i : i.src)).filter(Boolean);
+  const rawVars =
+    Array.isArray(raw.variants) && raw.variants.length > 0 ? raw.variants : [{}];
+  const variants = rawVars.map((v) => ({
+    price: v.price != null ? String(v.price) : "0.00",
+    sku: String(v.sku || "").trim(),
+    options: normalizeVariantOptions(v),
+  }));
+  const productOptions = buildProductOptionsFromVariants(variants);
   return {
     handle: raw.handle,
     title: raw.title,
@@ -306,12 +519,8 @@ function normalizePayload(raw) {
     vendor: raw.vendor || "Heartlands",
     product_type: raw.product_type || "Furniture",
     tags: raw.tags?.length ? raw.tags : ["heartlands", "supplier-heartlands"],
-    variants: [
-      {
-        price: v0.price != null ? String(v0.price) : "0.00",
-        sku: v0.sku || "",
-      },
-    ],
+    variants,
+    productOptions,
     _imageUrls: imageUrls,
   };
 }
@@ -364,7 +573,7 @@ async function main() {
     const v0 = row?.variants?.[0];
     const sku = v0?.sku != null ? String(v0.sku).trim() : "";
     const handle = row?.handle != null ? String(row.handle).trim() : "";
-    const key = sku ? `sku:${sku.toLowerCase()}` : `h:${handle.toLowerCase()}`;
+    const key = handle ? `h:${handle.toLowerCase()}` : sku ? `sku:${sku.toLowerCase()}` : "";
     if (!key || key === "h:") {
       deduped.push(row);
       continue;
@@ -375,7 +584,7 @@ async function main() {
   }
   if (deduped.length !== list.length) {
     console.error(
-      `[heartlands-import] Deduped JSON rows: ${list.length} → ${deduped.length} (by SKU, else handle)`
+      `[heartlands-import] Deduped JSON rows: ${list.length} → ${deduped.length} (by handle, else first variant SKU)`
     );
   }
 
@@ -427,6 +636,7 @@ async function main() {
     const p = normalizePayload(slice[i]);
     const sku = p.variants[0]?.sku || "";
     const price = p.variants[0]?.price || "0.00";
+    const variantCount = p.variants?.length || 0;
     let images = [...p._imageUrls];
     let usedPlaceholder = false;
     if (!images.length && placeholderOk) {
@@ -458,7 +668,7 @@ async function main() {
       if (dryRun) {
         if (!domain || !token) {
           console.log(
-            `[dry-run] ${p.handle} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""} (add Admin token to detect create vs update)`
+            `[dry-run] ${p.handle} variants=${variantCount} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""} (add Admin token to detect create vs update)`
           );
           created++;
           continue;
@@ -467,13 +677,13 @@ async function main() {
           let found = await findProductByHandle(domain, token, p.handle);
           if (!found && sku) found = await findProductBySku(domain, token, sku);
           console.log(
-            `[dry-run] ${found ? "update" : "create"} ${p.handle} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""}`
+            `[dry-run] ${found ? "update" : "create"} ${p.handle} variants=${variantCount} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""}`
           );
           if (found) updated++;
           else created++;
         } catch (e) {
           console.log(
-            `[dry-run] ${p.handle} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""} (lookup: ${e.message})`
+            `[dry-run] ${p.handle} variants=${variantCount} sku=${sku || "(none)"} images=${images.length}${usedPlaceholder ? " (placeholder)" : ""} (lookup: ${e.message})`
           );
           created++;
         }
@@ -490,7 +700,9 @@ async function main() {
         productId = found.productId;
         variantId = found.variantId;
         await updateProduct(domain, token, productId, writePayload);
-        if (variantId) {
+        if (usesVariantMatrixFlow(writePayload)) {
+          await syncVariantsAfterSave(domain, token, productId, writePayload, false);
+        } else if (variantId) {
           await updateVariant(domain, token, productId, variantId, { price, sku });
         }
         const m = await createMedia(domain, token, productId, images);
@@ -499,14 +711,16 @@ async function main() {
           published++;
         }
         console.log(
-          `[${i + 1}/${slice.length}] updated ${p.handle} media_ok=${m.ok} fail=${m.fail}${usedPlaceholder ? " placeholder" : ""}`
+          `[${i + 1}/${slice.length}] updated ${p.handle} variants=${variantCount} media_ok=${m.ok} fail=${m.fail}${usedPlaceholder ? " placeholder" : ""}`
         );
         updated++;
       } else {
         const cr = await createProduct(domain, token, writePayload);
         productId = cr.productId;
         variantId = cr.variantId;
-        if (variantId) {
+        if (usesVariantMatrixFlow(writePayload)) {
+          await syncVariantsAfterSave(domain, token, productId, writePayload, true);
+        } else if (variantId) {
           await updateVariant(domain, token, productId, variantId, { price, sku });
         }
         const m = await createMedia(domain, token, productId, images);
@@ -515,7 +729,7 @@ async function main() {
           published++;
         }
         console.log(
-          `[${i + 1}/${slice.length}] created ${p.handle} media_ok=${m.ok} fail=${m.fail}${usedPlaceholder ? " placeholder" : ""}`
+          `[${i + 1}/${slice.length}] created ${p.handle} variants=${variantCount} media_ok=${m.ok} fail=${m.fail}${usedPlaceholder ? " placeholder" : ""}`
         );
         created++;
       }

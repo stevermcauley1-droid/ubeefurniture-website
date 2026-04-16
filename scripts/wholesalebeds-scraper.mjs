@@ -254,22 +254,66 @@ function writePriceOverridesCsv(csvPath, entries) {
   fs.writeFileSync(csvPath, lines.join("\n") + "\n", "utf-8");
 }
 
-function computeFinalSkus(products) {
-  const used = new Set();
-  const out = [];
-  for (const p of products) {
-    let sku = String(p.sku || "").trim() || `WB-${p.slug || "item"}`;
-    let candidate = sku;
-    let n = 0;
-    while (used.has(candidate)) {
-      n++;
-      candidate = `${sku}-${p.slug || "h"}${n > 1 ? `-${n}` : ""}`;
-      if (candidate.length > 255) candidate = candidate.slice(0, 255);
-    }
-    used.add(candidate);
-    out.push(candidate);
+/** Base SKU string before size suffix (one row per parent product). */
+function baseSkuForProduct(p) {
+  return String(p.sku || "").trim() || `WB-${p.slug || "item"}`;
+}
+
+/**
+ * Tentative SKUs for import rows: variable products get one SKU per Woo variation
+ * (suffix = bed-size slug, e.g. 3ft / 4ft / 4ft-6).
+ */
+function tentativeSkusForProduct(product) {
+  const base = baseSkuForProduct(product);
+  if (product.type === "variable" && Array.isArray(product.variations) && product.variations.length > 0) {
+    return product.variations.map((varr) => {
+      const sizeAttr = (varr.attributes || []).find((a) =>
+        /bed\s*size|choose\s*bed/i.test(String(a?.name || ""))
+      );
+      const slug = String(sizeAttr?.value || "size").trim() || "size";
+      const safe = slug.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "size";
+      return `${base}-${safe}`;
+    });
   }
-  return out;
+  return [base];
+}
+
+function computeFinalSkuMatrix(products) {
+  const used = new Set();
+  const matrix = [];
+  for (const p of products) {
+    const tent = tentativeSkusForProduct(p);
+    const row = [];
+    for (const sku of tent) {
+      let candidate = sku;
+      let n = 0;
+      while (used.has(candidate)) {
+        n++;
+        candidate = `${sku}-x${n}`;
+        if (candidate.length > 255) candidate = candidate.slice(0, 255);
+      }
+      used.add(candidate);
+      row.push(candidate);
+    }
+    matrix.push(row);
+  }
+  return matrix;
+}
+
+/** Map WooCommerce bed-size slug to display label using parent attribute terms. */
+function sizeDisplayFromVariation(product, variation) {
+  const attrs = variation.attributes || [];
+  const sizeAttr = attrs.find((a) => /bed\s*size|choose\s*bed/i.test(String(a?.name || "")));
+  const slug = String(sizeAttr?.value || "").trim().toLowerCase();
+  if (!slug) return "One size";
+  const opt = (product.attributes || []).find(
+    (a) =>
+      String(a?.taxonomy || "").toLowerCase() === "pa_bed-size" ||
+      /choose\s*bed\s*size/i.test(String(a?.name || "").toLowerCase())
+  );
+  const term = (opt?.terms || []).find((t) => String(t.slug || "").toLowerCase() === slug);
+  if (term?.name) return String(term.name).trim();
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function resolveVariantPrice(product, priceMap, overrideBySku, finalSku) {
@@ -317,7 +361,7 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function toImportRow(product, priceMap, overrideBySku, finalSku) {
+function toImportRow(product, priceMap, overrideBySku, finalSkuList) {
   const title = cleanTitle(product.name);
   let body_html = String(product.description || product.short_description || "").trim();
   if (!textFromHtml(body_html)) {
@@ -330,8 +374,31 @@ function toImportRow(product, priceMap, overrideBySku, finalSku) {
     .filter((src) => /^https?:\/\//i.test(String(src || "").trim()))
     .map((src) => ({ src: String(src).trim() }));
 
-  const price = resolveVariantPrice(product, priceMap, overrideBySku, finalSku);
+  const skus = Array.isArray(finalSkuList) ? finalSkuList : [finalSkuList];
 
+  if (product.type === "variable" && Array.isArray(product.variations) && product.variations.length > 0) {
+    const variants = product.variations.map((varr, i) => {
+      const sku = String(skus[i] || "").trim();
+      const price = resolveVariantPrice(product, priceMap, overrideBySku, sku);
+      return {
+        price,
+        sku,
+        options: { Size: sizeDisplayFromVariation(product, varr) },
+      };
+    });
+    return {
+      handle: String(product.slug || "").trim(),
+      title,
+      body_html,
+      vendor: "Wholesale Beds",
+      product_type: productTypeFromCategories(product.categories),
+      tags: extractTagHints(product),
+      variants,
+      images,
+    };
+  }
+
+  const price = resolveVariantPrice(product, priceMap, overrideBySku, skus[0]);
   return {
     handle: String(product.slug || "").trim(),
     title,
@@ -342,7 +409,7 @@ function toImportRow(product, priceMap, overrideBySku, finalSku) {
     variants: [
       {
         price,
-        sku: String(finalSku || "").trim(),
+        sku: String(skus[0] || "").trim(),
       },
     ],
     images,
@@ -416,11 +483,13 @@ async function main() {
     console.error(`[wholesalebeds] Capped to --limit=${cap}`);
   }
 
-  const finalSkus = computeFinalSkus(products);
-  const rows = products.map((p, i) => toImportRow(p, priceMap, overrideBySku, finalSkus[i]));
+  const finalSkuMatrix = computeFinalSkuMatrix(products);
+  const rows = products.map((p, i) => toImportRow(p, priceMap, overrideBySku, finalSkuMatrix[i]));
 
   const pricedFromPdf = products.filter((p) => getPdfWholesaleCost(p, priceMap) > 0).length;
-  const zeros = rows.filter((r) => Number(r?.variants?.[0]?.price || 0) <= 0).length;
+  const zeros = rows.filter((r) =>
+    (r.variants || []).some((v) => Number(v?.price || 0) <= 0)
+  ).length;
   console.error(
     `[wholesalebeds] Pricing: PDF wholesale match → retail (×1.6): ${pricedFromPdf}/${rows.length}; variants with price ≤ 0: ${zeros}`
   );
@@ -429,15 +498,19 @@ async function main() {
   for (let i = 0; i < products.length; i++) {
     const p = products[i];
     if (getPdfWholesaleCost(p, priceMap) > 0) continue;
-    const sku = String(finalSkus[i] || "").trim();
-    if (!sku) continue;
-    const price = Number(rows[i]?.variants?.[0]?.price);
-    const prev = overrideBySku.get(sku);
-    overrideEntries.push({
-      sku,
-      cost: prev?.cost > 0 ? prev.cost : "",
-      price,
-    });
+    const skus = finalSkuMatrix[i] || [];
+    const variantRows = rows[i]?.variants || [];
+    for (let j = 0; j < skus.length; j++) {
+      const sku = String(skus[j] || "").trim();
+      if (!sku) continue;
+      const price = Number(variantRows[j]?.price);
+      const prev = overrideBySku.get(sku);
+      overrideEntries.push({
+        sku,
+        cost: prev?.cost > 0 ? prev.cost : "",
+        price,
+      });
+    }
   }
   overrideEntries.sort((a, b) => a.sku.localeCompare(b.sku));
   writePriceOverridesCsv(overridesPath, overrideEntries);
