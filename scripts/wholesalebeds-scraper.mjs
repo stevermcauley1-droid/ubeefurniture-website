@@ -259,21 +259,125 @@ function baseSkuForProduct(p) {
   return String(p.sku || "").trim() || `WB-${p.slug || "item"}`;
 }
 
+function optionShopifyName(attr) {
+  const n = String(attr?.name || "").trim();
+  const low = n.toLowerCase();
+  if (low.includes("bed size") || low.includes("choose bed")) return "Size";
+  if (low.includes("colour") || low.includes("color") || low.includes("colours")) return "Colour";
+  if (low.includes("made from") || low.includes("bed-type")) return "Material";
+  return n.replace(/^choose\s+/i, "").trim().slice(0, 40) || "Option";
+}
+
+function findParentAttribute(product, variationAttrName) {
+  const v = String(variationAttrName || "").trim().toLowerCase();
+  return (product.attributes || []).find((a) => {
+    const n = String(a.name || "").trim().toLowerCase();
+    return n === v || n.includes(v) || v.includes(n);
+  });
+}
+
+function labelForSlug(product, variationAttrName, valueSlug) {
+  const s = String(valueSlug || "").trim().toLowerCase();
+  if (!s) return "";
+  const attr = findParentAttribute(product, variationAttrName);
+  const term = (attr?.terms || []).find((t) => String(t.slug || "").toLowerCase() === s);
+  if (term?.name) return String(term.name).trim();
+  return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function optionsFromWooVariation(product, variation) {
+  const out = {};
+  for (const a of variation.attributes || []) {
+    const val = a.value;
+    if (val == null || String(val).trim() === "") continue;
+    const key = optionShopifyName({ name: a.name });
+    out[key] = labelForSlug(product, a.name, val);
+  }
+  return out;
+}
+
+function skuSuffixFromWooVariation(varr) {
+  const parts = [];
+  for (const a of varr.attributes || []) {
+    if (a.value == null || String(a.value).trim() === "") continue;
+    const bit = String(a.value)
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "");
+    if (bit) parts.push(bit);
+  }
+  return parts.join("-") || "variant";
+}
+
+/** Store API sometimes returns one stub variation with null attribute values. */
+function woocommerceVariationsUsable(product) {
+  if (product.type !== "variable" || !Array.isArray(product.variations) || !product.variations.length) {
+    return false;
+  }
+  if (product.variations.length >= 2) return true;
+  const attrs = product.variations[0]?.attributes || [];
+  if (!attrs.length) return false;
+  return attrs.every((x) => x.value != null && String(x.value).trim() !== "");
+}
+
+/** When WC variations are incomplete, build a matrix from multi-value attribute terms. */
+function syntheticVariationsFromAttributes(product) {
+  const attrs = (product.attributes || []).filter(
+    (a) => a.has_variations && Array.isArray(a.terms) && a.terms.length > 1
+  );
+  if (!attrs.length) return null;
+  function cartesian(attrList) {
+    if (!attrList.length) return [[]];
+    const [head, ...tail] = attrList;
+    const rest = cartesian(tail);
+    const rows = [];
+    for (const term of head.terms) {
+      for (const r of rest) {
+        rows.push([{ attr: head, term }, ...r]);
+      }
+    }
+    return rows;
+  }
+  return cartesian(attrs).map((pairs) => {
+    const options = {};
+    const slugParts = [];
+    for (const { attr, term } of pairs) {
+      const key = optionShopifyName(attr);
+      options[key] = String(term.name || "").trim();
+      const bit = String(term.slug || "x")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "") || "x";
+      slugParts.push(bit);
+    }
+    return { options, skuSuffix: slugParts.join("-") };
+  });
+}
+
 /**
- * Tentative SKUs for import rows: variable products get one SKU per Woo variation
- * (suffix = bed-size slug, e.g. 3ft / 4ft / 4ft-6).
+ * One entry per sellable variant: { options, skuSlug }.
+ * options keys are short Shopify option names (Size, Colour, …).
  */
+function buildVariantDescriptors(product) {
+  if (woocommerceVariationsUsable(product)) {
+    return product.variations.map((varr) => ({
+      options: optionsFromWooVariation(product, varr),
+      skuSlug: skuSuffixFromWooVariation(varr),
+    }));
+  }
+  const syn = syntheticVariationsFromAttributes(product);
+  if (syn?.length) {
+    return syn.map((s) => ({
+      options: s.options,
+      skuSlug: s.skuSuffix,
+    }));
+  }
+  return null;
+}
+
 function tentativeSkusForProduct(product) {
   const base = baseSkuForProduct(product);
-  if (product.type === "variable" && Array.isArray(product.variations) && product.variations.length > 0) {
-    return product.variations.map((varr) => {
-      const sizeAttr = (varr.attributes || []).find((a) =>
-        /bed\s*size|choose\s*bed/i.test(String(a?.name || ""))
-      );
-      const slug = String(sizeAttr?.value || "size").trim() || "size";
-      const safe = slug.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "size";
-      return `${base}-${safe}`;
-    });
+  const desc = buildVariantDescriptors(product);
+  if (desc?.length) {
+    return desc.map((d) => `${base}-${d.skuSlug}`);
   }
   return [base];
 }
@@ -298,22 +402,6 @@ function computeFinalSkuMatrix(products) {
     matrix.push(row);
   }
   return matrix;
-}
-
-/** Map WooCommerce bed-size slug to display label using parent attribute terms. */
-function sizeDisplayFromVariation(product, variation) {
-  const attrs = variation.attributes || [];
-  const sizeAttr = attrs.find((a) => /bed\s*size|choose\s*bed/i.test(String(a?.name || "")));
-  const slug = String(sizeAttr?.value || "").trim().toLowerCase();
-  if (!slug) return "One size";
-  const opt = (product.attributes || []).find(
-    (a) =>
-      String(a?.taxonomy || "").toLowerCase() === "pa_bed-size" ||
-      /choose\s*bed\s*size/i.test(String(a?.name || "").toLowerCase())
-  );
-  const term = (opt?.terms || []).find((t) => String(t.slug || "").toLowerCase() === slug);
-  if (term?.name) return String(term.name).trim();
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function resolveVariantPrice(product, priceMap, overrideBySku, finalSku) {
@@ -376,14 +464,15 @@ function toImportRow(product, priceMap, overrideBySku, finalSkuList) {
 
   const skus = Array.isArray(finalSkuList) ? finalSkuList : [finalSkuList];
 
-  if (product.type === "variable" && Array.isArray(product.variations) && product.variations.length > 0) {
-    const variants = product.variations.map((varr, i) => {
+  const desc = buildVariantDescriptors(product);
+  if (desc?.length) {
+    const variants = desc.map((d, i) => {
       const sku = String(skus[i] || "").trim();
       const price = resolveVariantPrice(product, priceMap, overrideBySku, sku);
       return {
         price,
         sku,
-        options: { Size: sizeDisplayFromVariation(product, varr) },
+        options: d.options,
       };
     });
     return {
