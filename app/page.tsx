@@ -72,7 +72,9 @@ export default async function HomePage() {
   try {
     const { collection } = await getCollection("sofas", 8);
     if (collection?.products?.edges?.length) {
-      featuredProducts = collection.products.edges.map((e) => e.node);
+      featuredProducts = collection.products.edges.map(
+        (edge: { node: StorefrontProduct }) => edge.node
+      );
     }
   } catch (e) {
     console.error("[HomePage] Featured sofas (Shopify) failed", e);
