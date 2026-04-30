@@ -63,12 +63,12 @@ export default async function LandlordPackagePage({ params }: PageProps) {
     };
   });
   const whatsappDigits = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
-  if (!whatsappDigits) {
-    throw new Error("MISSING_WHATSAPP_NUMBER");
-  }
-  const whatsappUrl = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(
-    `Hi I want the ${toTitleCaseSlug(slug)} furniture pack`
-  )}`;
+  const whatsappUrl = whatsappDigits
+    ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(
+        `Hi I want the ${toTitleCaseSlug(slug)} furniture pack`
+      )}`
+    : null;
+  const ctaHref = whatsappUrl ?? "/contact";
   const heroImage = pkg.items[0]?.image ?? "";
 
   return (
@@ -99,12 +99,12 @@ export default async function LandlordPackagePage({ params }: PageProps) {
             </div>
             <div className="pt-2">
               <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={ctaHref}
+                target={whatsappUrl ? "_blank" : undefined}
+                rel={whatsappUrl ? "noopener noreferrer" : undefined}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-[var(--ubee-yellow)] px-8 py-4 text-base font-extrabold text-zinc-900 shadow-lg ring-2 ring-yellow-400/70 transition hover:brightness-105 sm:w-auto sm:text-lg"
               >
-                Secure This Property Setup
+                {whatsappUrl ? "Secure This Property Setup" : "Check Availability"}
               </a>
             </div>
           </div>
