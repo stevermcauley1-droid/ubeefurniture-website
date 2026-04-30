@@ -46,7 +46,22 @@ export default async function LandlordPackagePage({ params }: PageProps) {
   const slug = packageSlug as PackageSlug;
   if (!packages[slug]) notFound();
 
-  const pkg = await generatePackage(slug);
+  const cfg = packages[slug];
+  const pkg = await generatePackage(slug).catch((error) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[LandlordPackagePage] package generation fallback", {
+        slug,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return {
+      slug,
+      name: cfg.name,
+      description: cfg.description,
+      items: [],
+      totals: { original: 0, packagePrice: 0, individualTotal: 0, savings: 0 },
+    };
+  });
   const whatsappDigits = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
   if (!whatsappDigits) {
     throw new Error("MISSING_WHATSAPP_NUMBER");
@@ -99,6 +114,11 @@ export default async function LandlordPackagePage({ params }: PageProps) {
       <section className="mb-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-2xl font-semibold text-zinc-900">Included Items</h2>
         <p className="mt-2 text-zinc-600">Live Shopify picks assembled into one landlord-ready package.</p>
+        {pkg.items.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">
+            Package details are being refreshed. Please check availability on WhatsApp.
+          </p>
+        ) : null}
         <ul className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {pkg.items.map((item) => (
             <li key={item.id} className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
